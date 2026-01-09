@@ -80,4 +80,20 @@ using BowtieRisk
     write_tornado_csv(csv_path, tornado)
     @test isfile(csv_path)
     rm(csv_path, force=true)
+
+    templ = template_model(:process_safety)
+    @test templ.top_event.name == :ContainmentLost
+
+    schema_path = joinpath(@__DIR__, "schema.json")
+    write_schema_json(schema_path)
+    @test isfile(schema_path)
+    rm(schema_path, force=true)
+
+    simple_path = joinpath(@__DIR__, "simple.csv")
+    open(simple_path, "w") do io
+        write(io, "a,b\n1,2\n")
+    end
+    rows = load_simple_csv(simple_path)
+    @test rows[1]["a"] == "1"
+    rm(simple_path, force=true)
 end

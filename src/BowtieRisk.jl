@@ -11,6 +11,9 @@ export evaluate, to_mermaid, to_graphviz
 export simulate, sensitivity_tornado
 export report_markdown, write_report_markdown, write_tornado_csv
 export write_model_json, read_model_json
+export list_templates, template_model
+export write_schema_json, model_schema
+export load_simple_csv
 
 """
 Represents a hazard (source of potential harm).
@@ -370,6 +373,97 @@ function write_tornado_csv(path::AbstractString, data::Vector{Tuple{Symbol, Floa
         write(io, join(lines, "\n"))
     end
     nothing
+end
+
+"""
+List built-in template identifiers.
+"""
+list_templates() = [:process_safety, :cyber_incident]
+
+"""
+Return a template model by name.
+"""
+function template_model(name::Symbol)
+    if name == :process_safety
+        hazard = Hazard(:LossOfContainment, "Loss of containment from vessel")
+        top = TopEvent(:ContainmentLost, "Containment is lost")
+        threats = [
+            ThreatPath(Threat(:Overpressure, 0.02, "Pressure exceeds design"),
+                       [Barrier(:ReliefValve, 0.7, :preventive, "Relieves pressure", 0.1, :none)],
+                       EscalationFactor[]),
+        ]
+        consequences = [
+            ConsequencePath(Consequence(:Release, 0.6, "Release to atmosphere"),
+                            [Barrier(:GasDetection, 0.6, :mitigative, "Detects release", 0.0, :shared_power)],
+                            EscalationFactor[]),
+        ]
+        return BowtieModel(hazard, top, threats, consequences, ProbabilityModel(:independent))
+    elseif name == :cyber_incident
+        hazard = Hazard(:UnauthorizedAccess, "Unauthorized access to systems")
+        top = TopEvent(:AccessGained, "Credentials compromised")
+        threats = [
+            ThreatPath(Threat(:Phishing, 0.08, "Credential phishing"),
+                       [Barrier(:MFA, 0.8, :preventive, "Multi-factor auth", 0.0, :shared_identity)],
+                       EscalationFactor[]),
+        ]
+        consequences = [
+            ConsequencePath(Consequence(:DataLeak, 0.9, "Sensitive data exposure"),
+                            [Barrier(:DLP, 0.5, :mitigative, "Data loss prevention", 0.0, :none)],
+                            EscalationFactor[]),
+        ]
+        return BowtieModel(hazard, top, threats, consequences, ProbabilityModel(:dependent))
+    else
+        error("unknown template: $name")
+    end
+end
+
+"""
+Return a basic JSON schema for a bowtie model.
+"""
+function model_schema()
+    Dict(
+        "\$schema" => "https://json-schema.org/draft/2020-12/schema",
+        "title" => "BowtieRiskModel",
+        "type" => "object",
+        "properties" => Dict(
+            "hazard" => Dict("type" => "object"),
+            "top_event" => Dict("type" => "object"),
+            "threat_paths" => Dict("type" => "array"),
+            "consequence_paths" => Dict("type" => "array"),
+            "probability_model" => Dict("type" => "object"),
+        ),
+        "required" => ["hazard", "top_event", "threat_paths", "consequence_paths"],
+    )
+end
+
+"""
+Write the JSON schema to disk.
+"""
+function write_schema_json(path::AbstractString)
+    open(path, "w") do io
+        JSON3.write(io, model_schema())
+    end
+    nothing
+end
+
+"""
+Load a simple CSV file into a vector of dictionaries.\nFormat: header row with comma-separated keys.
+"""
+function load_simple_csv(path::AbstractString)
+    lines = readlines(path)
+    isempty(lines) && return Dict{String, String}[]
+    header = split(strip(lines[1]), ',')
+    rows = Dict{String, String}[]
+    for line in lines[2:end]
+        strip(line) == "" && continue
+        values = split(strip(line), ',')
+        row = Dict{String, String}()
+        for (i, key) in enumerate(header)
+            row[key] = i <= length(values) ? values[i] : ""
+        end
+        push!(rows, row)
+    end
+    rows
 end
 
 """

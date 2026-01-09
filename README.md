@@ -20,6 +20,8 @@ be extended for domain-specific needs.
 - **Dependencies**: shared-cause failures across barrier groups.
 - **Simulation**: Monte Carlo evaluation with barrier distributions.
 - **Reporting**: Markdown and CSV outputs for sensitivity data.
+- **Templates**: built-in starter models for common scenarios.
+- **Schema**: JSON schema for UI integrations.
 - **Event Chain**: ordered events with probabilities and barriers.
 
 ## Probability Model (Baseline)
@@ -107,6 +109,11 @@ tornado = sensitivity_tornado(model; delta=0.1)
 
 write_report_markdown("report.md", model; tornado_data=tornado)
 write_tornado_csv("tornado.csv", tornado)
+```
+
+```julia
+model = template_model(:process_safety)
+write_schema_json("bowtie.schema.json")
 ```
 
 ## Development
