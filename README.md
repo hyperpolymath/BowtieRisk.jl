@@ -115,3 +115,16 @@ write_tornado_csv("tornado.csv", tornado)
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
+
+## API Snapshot
+
+```julia
+Hazard, Threat, TopEvent, Consequence, Barrier, EscalationFactor
+ProbabilityModel, ThreatPath, ConsequencePath, BowtieModel
+Event, EventChain, chain_probability
+BarrierDistribution, SimulationResult
+evaluate, simulate, sensitivity_tornado
+to_mermaid, to_graphviz
+write_model_json, read_model_json
+report_markdown, write_report_markdown, write_tornado_csv
+```
