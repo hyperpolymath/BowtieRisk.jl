@@ -60,4 +60,24 @@ using BowtieRisk
     model2 = read_model_json(path)
     @test model2.top_event.name == :Top
     rm(path, force=true)
+
+    dists = Dict{Symbol, BarrierDistribution}(
+        :B1 => BarrierDistribution(:beta, (2.0, 5.0, 0.0)),
+        :M1 => BarrierDistribution(:triangular, (0.2, 0.5, 0.9)),
+    )
+    sim = simulate(model; samples=20, barrier_dists=dists)
+    @test sim.top_event_mean >= 0.0
+    @test haskey(sim.consequence_means, :C1)
+
+    tornado = sensitivity_tornado(model; delta=0.1)
+    @test !isempty(tornado)
+    report_path = joinpath(@__DIR__, "report.md")
+    write_report_markdown(report_path, model; tornado_data=tornado)
+    @test isfile(report_path)
+    rm(report_path, force=true)
+
+    csv_path = joinpath(@__DIR__, "tornado.csv")
+    write_tornado_csv(csv_path, tornado)
+    @test isfile(csv_path)
+    rm(csv_path, force=true)
 end

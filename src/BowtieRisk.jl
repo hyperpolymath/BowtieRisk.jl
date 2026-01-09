@@ -1,11 +1,15 @@
 module BowtieRisk
 
 using JSON3
+using Distributions
 
 export Hazard, Threat, TopEvent, Consequence, Barrier, EscalationFactor
 export ProbabilityModel, ThreatPath, ConsequencePath, BowtieModel
+export BarrierDistribution, SimulationResult
 export Event, EventChain, chain_probability
 export evaluate, to_mermaid, to_graphviz
+export simulate, sensitivity_tornado
+export report_markdown, write_report_markdown, write_tornado_csv
 export write_model_json, read_model_json
 
 """
@@ -119,6 +123,24 @@ struct EventChain
 end
 
 """
+Barrier effectiveness distribution.
+Kinds: :fixed, :beta, :triangular.
+"""
+struct BarrierDistribution
+    kind::Symbol
+    params::NTuple{3, Float64}
+end
+
+"""
+Monte Carlo simulation result.
+"""
+struct SimulationResult
+    top_event_mean::Float64
+    consequence_means::Dict{Symbol, Float64}
+    samples::Vector{Float64}
+end
+
+"""
 Compute chain probability with barrier reduction (independent assumptions).
 """
 function chain_probability(chain::EventChain)
@@ -132,6 +154,49 @@ function _effective_barrier(barrier::Barrier, factors::Vector{EscalationFactor})
     degraded = base * (1.0 - clamp(barrier.degradation, 0.0, 1.0))
     factor_reduction = prod((1.0 - clamp(f.multiplier, 0.0, 1.0) for f in factors); init=1.0)
     clamp(degraded * factor_reduction, 0.0, 1.0)
+end
+
+function _sample_distribution(dist::BarrierDistribution)
+    if dist.kind == :fixed
+        return clamp(dist.params[1], 0.0, 1.0)
+    elseif dist.kind == :beta
+        a, b = dist.params[1], dist.params[2]
+        return clamp(rand(Beta(a, b)), 0.0, 1.0)
+    elseif dist.kind == :triangular
+        low, mode, high = dist.params
+        u = rand()
+        c = (mode - low) / (high - low)
+        if u < c
+            return low + sqrt(u * (high - low) * (mode - low))
+        else
+            return high - sqrt((1.0 - u) * (high - low) * (high - mode))
+        end
+    else
+        error("unknown distribution kind: $(dist.kind)")
+    end
+end
+
+function _apply_distributions(model::BowtieModel, dists::Dict{Symbol, BarrierDistribution})
+    function sample_barrier(b::Barrier)
+        if haskey(dists, b.name)
+            dist = dists[b.name]
+            sampled = _sample_distribution(dist)
+            return Barrier(b.name, sampled, b.kind, b.description, b.degradation, b.dependency)
+        end
+        b
+    end
+
+    threats = ThreatPath[]
+    for p in model.threat_paths
+        push!(threats, ThreatPath(p.threat, [sample_barrier(b) for b in p.barriers], p.escalation_factors))
+    end
+
+    cons = ConsequencePath[]
+    for p in model.consequence_paths
+        push!(cons, ConsequencePath(p.consequence, [sample_barrier(b) for b in p.barriers], p.escalation_factors))
+    end
+
+    BowtieModel(model.hazard, model.top_event, threats, cons, model.probability_model)
 end
 
 function _combined_barrier_reduction(barriers::Vector{Barrier}, factors::Vector{EscalationFactor}, model::ProbabilityModel)
@@ -198,6 +263,113 @@ function evaluate(model::BowtieModel)
     end
 
     BowtieSummary(top_event_probability, threat_residuals, consequence_probabilities, consequence_risks)
+end
+
+"""
+Run a Monte Carlo simulation with barrier effectiveness distributions.
+"""
+function simulate(model::BowtieModel; samples::Int=1000, barrier_dists::Dict{Symbol, BarrierDistribution}=Dict())
+    top_vals = Float64[]
+    cons_vals = Dict{Symbol, Vector{Float64}}()
+    for path in model.consequence_paths
+        cons_vals[path.consequence.name] = Float64[]
+    end
+
+    for _ in 1:samples
+        sampled = _apply_distributions(model, barrier_dists)
+        summary = evaluate(sampled)
+        push!(top_vals, summary.top_event_probability)
+        for (k, v) in summary.consequence_probabilities
+            push!(cons_vals[k], v)
+        end
+    end
+
+    cons_means = Dict{Symbol, Float64}()
+    for (k, vals) in cons_vals
+        cons_means[k] = isempty(vals) ? 0.0 : sum(vals) / length(vals)
+    end
+
+    SimulationResult(sum(top_vals) / length(top_vals), cons_means, top_vals)
+end
+
+"""
+Sensitivity data for tornado charts (low/high values per barrier).
+"""
+function sensitivity_tornado(model::BowtieModel; delta::Float64=0.1)
+    base = evaluate(model).top_event_probability
+    results = Vector{Tuple{Symbol, Float64, Float64}}()
+
+    for (pidx, path) in enumerate(model.threat_paths)
+        for (bidx, barrier) in enumerate(path.barriers)
+            lower = clamp(barrier.effectiveness - delta, 0.0, 1.0)
+            upper = clamp(barrier.effectiveness + delta, 0.0, 1.0)
+
+            low_barrier = Barrier(barrier.name, lower, barrier.kind, barrier.description, barrier.degradation, barrier.dependency)
+            high_barrier = Barrier(barrier.name, upper, barrier.kind, barrier.description, barrier.degradation, barrier.dependency)
+
+            low_paths = deepcopy(model.threat_paths)
+            high_paths = deepcopy(model.threat_paths)
+            low_paths[pidx].barriers[bidx] = low_barrier
+            high_paths[pidx].barriers[bidx] = high_barrier
+
+            low_model = BowtieModel(model.hazard, model.top_event, low_paths, model.consequence_paths, model.probability_model)
+            high_model = BowtieModel(model.hazard, model.top_event, high_paths, model.consequence_paths, model.probability_model)
+
+            push!(results, (barrier.name, evaluate(low_model).top_event_probability, evaluate(high_model).top_event_probability))
+        end
+    end
+
+    sort!(results, by=x -> abs(x[2] - x[3]), rev=true)
+    results
+end
+
+"""
+Markdown report for a model and optional tornado data.
+"""
+function report_markdown(model::BowtieModel; tornado_data::Vector{Tuple{Symbol, Float64, Float64}}=Tuple{Symbol, Float64, Float64}[])
+    summary = evaluate(model)
+    lines = String[]
+    push!(lines, "# Bowtie Risk Report")
+    push!(lines, "- Hazard: $(model.hazard.name)")
+    push!(lines, "- Top event: $(model.top_event.name)")
+    push!(lines, "- Top event probability: $(round(summary.top_event_probability, digits=4))")
+    push!(lines, "")
+    push!(lines, "## Consequences")
+    for (k, v) in summary.consequence_probabilities
+        push!(lines, "- $(k): $(round(v, digits=4))")
+    end
+
+    if !isempty(tornado_data)
+        push!(lines, "")
+        push!(lines, "## Sensitivity (Tornado)")
+        for (name, low, high) in tornado_data
+            push!(lines, "- $(name): low=$(round(low, digits=4)) high=$(round(high, digits=4))")
+        end
+    end
+    join(lines, "\n")
+end
+
+"""
+Write Markdown report to disk.
+"""
+function write_report_markdown(path::AbstractString, model::BowtieModel; tornado_data::Vector{Tuple{Symbol, Float64, Float64}}=Tuple{Symbol, Float64, Float64}[])
+    open(path, "w") do io
+        write(io, report_markdown(model; tornado_data=tornado_data))
+    end
+    nothing
+end
+
+"""
+Write tornado data to CSV.\n"""
+function write_tornado_csv(path::AbstractString, data::Vector{Tuple{Symbol, Float64, Float64}})
+    lines = ["barrier,low,high"]
+    for (name, low, high) in data
+        push!(lines, "$(name),$(low),$(high)")
+    end
+    open(path, "w") do io
+        write(io, join(lines, "\n"))
+    end
+    nothing
 end
 
 """

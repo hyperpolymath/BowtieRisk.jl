@@ -18,6 +18,8 @@ be extended for domain-specific needs.
 - **Barriers**: preventive (left side) or mitigative (right side) controls.
 - **Escalation factors**: conditions that reduce barrier effectiveness.
 - **Dependencies**: shared-cause failures across barrier groups.
+- **Simulation**: Monte Carlo evaluation with barrier distributions.
+- **Reporting**: Markdown and CSV outputs for sensitivity data.
 - **Event Chain**: ordered events with probabilities and barriers.
 
 ## Probability Model (Baseline)
@@ -92,6 +94,19 @@ println(dot)
 
 ```julia
 write_model_json("bowtie.json", model)
+```
+
+```julia
+dist = Dict(
+    :ReliefValve => BarrierDistribution(:beta, (2.0, 5.0, 0.0)),
+    :GasDetection => BarrierDistribution(:triangular, (0.2, 0.5, 0.9)),
+)
+
+sim = simulate(model; samples=500, barrier_dists=dist)
+tornado = sensitivity_tornado(model; delta=0.1)
+
+write_report_markdown("report.md", model; tornado_data=tornado)
+write_tornado_csv("tornado.csv", tornado)
 ```
 
 ## Development
