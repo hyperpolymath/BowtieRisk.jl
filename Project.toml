@@ -1,0 +1,15 @@
+name = "BowtieRisk"
+uuid = "f4857c2c-646e-44f8-8901-46c9ace85fa6"
+authors = ["hyperpolymath"]
+version = "0.1.0"
+
+[deps]
+
+[compat]
+julia = "1.9"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
