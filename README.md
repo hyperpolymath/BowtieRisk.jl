@@ -1,4 +1,9 @@
+[![License](https://img.shields.io/badge/license-PMPL--1.0-blue.svg)](https://github.com/hyperpolymath/palimpsest-license)
+
 # BowtieRisk.jl
+
+
+
 
 BowtieRisk.jl provides a Julia framework for bowtie risk modeling with an
 event-chain view, escalation factors, and basic dependency handling. It is
