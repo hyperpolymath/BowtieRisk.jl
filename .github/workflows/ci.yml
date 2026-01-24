@@ -12,8 +12,8 @@ jobs:
       matrix:
         julia-version: ['1.9', '1.10', '1.11']
     steps:
-      - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v2
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: julia-actions/setup-julia@824fb972babf1837cf21c49159bf8a8130f26840 # v2
         with:
           version: ${{ matrix.julia-version }}
       - name: Install dependencies
