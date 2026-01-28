@@ -2,6 +2,7 @@ name = "BowtieRisk"
 uuid = "f4857c2c-646e-44f8-8901-46c9ace85fa6"
 authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
 version = "0.1.0"
+license = "PMPL-1.0-or-later"
 
 [deps]
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
