@@ -168,6 +168,14 @@ function _sample_distribution(dist::BarrierDistribution)
         return clamp(rand(Beta(a, b)), 0.0, 1.0)
     elseif dist.kind == :triangular
         low, mode, high = dist.params
+
+        if !(low <= mode <= high) || low >= high
+            throw(ArgumentError(
+                "Triangular distribution requires low ≤ mode ≤ high and low < high. " *
+                "Got low=$low, mode=$mode, high=$high"
+            ))
+        end
+
         u = rand()
         c = (mode - low) / (high - low)
         if u < c
