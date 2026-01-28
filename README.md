@@ -14,6 +14,20 @@ This is a new project scaffold with a small, explicit core model. It focuses on
 clear data structures, transparent assumptions, and simple calculations that can
 be extended for domain-specific needs.
 
+## Installation
+
+### From Julia REPL
+```julia
+using Pkg
+Pkg.add("BowtieRisk")
+```
+
+### From Git (Development)
+```julia
+using Pkg
+Pkg.add(url="https://github.com/hyperpolymath/BowtieRisk.jl")
+```
+
 ## Core Concepts
 
 - **Hazard**: the source of potential harm.
