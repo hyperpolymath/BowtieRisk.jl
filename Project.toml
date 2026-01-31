@@ -1,7 +1,7 @@
 name = "BowtieRisk"
 uuid = "f4857c2c-646e-44f8-8901-46c9ace85fa6"
 authors = ["Jonathan D.A. Jewell <jonathan.jewell@open.ac.uk>"]
-version = "0.1.0"
+version = "1.0.0"
 license = "PMPL-1.0-or-later"
 
 [deps]
