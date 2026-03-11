@@ -1,0 +1,18 @@
+/Manifest.toml
+*.jl.cov
+*.jl.mem
+*.jl.*.cov
+.DS_Store
+/deps
+/build
+/docs/build
+
+# KDE directory metadata
+.directory
+
+# Sync reports
+sync_report*.txt
+sync_repos_report*.txt
+
+# Crash recovery artifacts
+ai-cli-crash-capture/

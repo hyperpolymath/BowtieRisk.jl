@@ -1,0 +1,148 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build Package
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        julia-version: ['1.10']
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - uses: julia-actions/setup-julia@824fb972babf1837cf21c49159bf8a8130f26840 # v2
+        with:
+          version: ${{ matrix.julia-version }}
+
+      - uses: julia-actions/cache@e8472695fb3c2028b1118dc399c8440ff497d409 # v2
+
+      - name: Build and test
+        run: |
+          julia --project -e 'using Pkg; Pkg.build(); Pkg.test()'
+
+      - name: Package artifacts
+        run: |
+          mkdir -p dist
+          tar -czf dist/BowtieRisk.jl-${{ matrix.os }}.tar.gz src/ Project.toml README.* LICENSE
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.os }}
+          path: dist/
+
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - uses: julia-actions/setup-julia@824fb972babf1837cf21c49159bf8a8130f26840 # v2
+        with:
+          version: '1.10'
+
+      - name: Generate SBOM
+        run: |
+          julia --project -e '
+            using Pkg, JSON
+            pkg_info = Pkg.project()
+            deps = Pkg.dependencies()
+            sbom = Dict(
+              "bomFormat" => "CycloneDX",
+              "specVersion" => "1.4",
+              "version" => 1,
+              "metadata" => Dict(
+                "component" => Dict(
+                  "type" => "library",
+                  "name" => pkg_info.name,
+                  "version" => string(pkg_info.version)
+                )
+              ),
+              "components" => [
+                Dict(
+                  "type" => "library",
+                  "name" => string(uuid),
+                  "version" => string(info.version)
+                ) for (uuid, info) in deps if info.is_direct_dep
+              ]
+            )
+            open("sbom.json", "w") do f
+              JSON.print(f, sbom, 2)
+            end
+          '
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build, sbom]
+
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts/
+
+      - name: Prepare release
+        run: |
+          mkdir -p release
+          find release-artifacts -type f -exec cp {} release/ \;
+          cd release
+          sha256sum * > checksums.txt
+
+      - name: Extract version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: BowtieRisk.jl ${{ steps.version.outputs.version }}
+          body: |
+            ## Installation
+
+            ```julia
+            using Pkg
+            Pkg.add(url="https://github.com/hyperpolymath/BowtieRisk.jl", rev="${{ steps.version.outputs.version }}")
+            ```
+
+            ## Verification
+
+            ```bash
+            sha256sum -c checksums.txt
+            ```
+          files: release/*
+          draft: false
+          prerelease: false

@@ -1,0 +1,38 @@
+name = "BowtieRisk"
+uuid = "f4857c2c-646e-44f8-8901-46c9ace85fa6"
+authors = ["Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>"]
+version = "1.0.0"
+license = "MPL-2.0"
+
+[deps]
+AcceleratorGate = "59f742c7-270d-4a76-95d4-a853ae16cc71"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
+[weakdeps]
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
+AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
+
+[extensions]
+BowtieRiskCUDAExt = ["CUDA", "KernelAbstractions"]
+BowtieRiskMetalExt = ["Metal", "KernelAbstractions"]
+BowtieRiskROCmExt = ["AMDGPU", "KernelAbstractions"]
+
+[compat]
+AcceleratorGate = "0.1"
+julia = "1.9"
+JSON3 = "1"
+Distributions = "0.25"
+CUDA = "5"
+Metal = "1"
+AMDGPU = "1"
+KernelAbstractions = "0.9"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

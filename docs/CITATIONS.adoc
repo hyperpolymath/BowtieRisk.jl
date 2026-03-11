@@ -1,0 +1,36 @@
+= BowtieRisk.jl - Citation Guide
+:toc:
+
+== BibTeX
+
+[source,bibtex]
+----
+@software{bowtierisk_jl_2026,
+  author = {Jewell, Jonathan D.A.},
+  title = {BowtieRisk.jl},
+  year = {2026},
+  url = {https://github.com/hyperpolymath/BowtieRisk.jl},
+  license = {PMPL-1.0-or-later}
+}
+----
+
+== Harvard Style
+
+Jewell, J.D.A. (2026) _BowtieRisk.jl_ [Computer software]. Available at: https://github.com/hyperpolymath/BowtieRisk.jl
+
+== OSCOLA
+
+Jonathan D.A. Jewell, 'BowtieRisk.jl' (2026) <https://github.com/hyperpolymath/BowtieRisk.jl>
+
+== MLA
+
+Jewell, Jonathan D.A. "BowtieRisk.jl." 2026, github.com/hyperpolymath/BowtieRisk.jl.
+
+== APA 7
+
+Jewell, J. D. A. (2026). _BowtieRisk.jl_ [Computer software]. GitHub. https://github.com/hyperpolymath/BowtieRisk.jl
+
+== See Also
+
+* link:../CITATION.cff[CITATION.cff]
+* link:../codemeta.json[codemeta.json]
