@@ -1,0 +1,26 @@
+# SPDX-License-Identifier: PMPL-1.0-or-later
+# Clade declaration — part of the gv-clade-index registry
+# See: https://github.com/hyperpolymath/gv-clade-index
+
+[identity]
+uuid = "02cba5a9-9ee2-56ca-9e60-9901778360a9"
+primary-forge = "github"
+primary-owner = "hyperpolymath"
+canonical-name = "BowtieRisk.jl"
+prefixed-name = "dx-BowtieRisk.jl"
+
+[clade]
+primary = "dx"
+secondary = []
+assigned = "2026-03-16"
+rationale = ""
+
+[forges]
+github = "hyperpolymath/BowtieRisk.jl"
+gitlab = "hyperpolymath/BowtieRisk.jl"
+bitbucket = "hyperpolymath/BowtieRisk.jl"
+
+[lineage]
+type = "standalone"
+parent = "Julia package — bowtie risk analysis"
+born = "2026-03-16"
