@@ -41,7 +41,7 @@ If you cannot use GitHub Security Advisories, you may email us directly:
 
 | | |
 |---|---|
-| **Email** | jonathan.jewell@open.ac.uk |
+| **Email** | j.d.a.jewell@open.ac.uk |
 | **PGP Key** | [Download Public Key](https://keybase.io/hyperpolymath) |
 | **Fingerprint** | `Not yet configured` |
 
@@ -50,10 +50,10 @@ If you cannot use GitHub Security Advisories, you may email us directly:
 curl -sSL https://keybase.io/hyperpolymath | gpg --import
 
 # Verify fingerprint
-gpg --fingerprint jonathan.jewell@open.ac.uk
+gpg --fingerprint j.d.a.jewell@open.ac.uk
 
 # Encrypt your report
-gpg --armor --encrypt --recipient jonathan.jewell@open.ac.uk report.txt
+gpg --armor --encrypt --recipient j.d.a.jewell@open.ac.uk report.txt
 ```
 
 > **⚠️ Important:** Do not report security vulnerabilities through public GitHub issues, pull requests, discussions, or social media.

@@ -9,7 +9,7 @@ sensitivity_tornado, serialization, diagramming, templates, and CSV import all w
 real implementations with real tests. However, there are significant problems elsewhere:
 the RSR template files (ABI/FFI, contractiles, SECURITY.md, CONTRIBUTING.md, CODE_OF_CONDUCT.md,
 CITATIONS.adoc, examples, docs, ROADMAP.adoc) were never customized from the template and
-still contain `{{PROJECT}}`, `{{project}}`, `{{OWNER}}`, `{{REPO}}`, `{{FORGE}}` placeholders.
+still contain `{{PROJECT}}`, `{{project}}`, `hyperpolymath`, `BowtieRisk.jl`, `github.com` placeholders.
 Several files use the banned AGPL-3.0 license header instead of PMPL-1.0-or-later. The
 `.machine_readable/` directory with SCM files is entirely missing. The Documenter.jl docs
 reference a non-existent `api.md`. The test suite has dead code (testing for templates and
@@ -39,7 +39,7 @@ nothing to do with BowtieRisk.jl.
 - `/var/mnt/eclipse/repos/BowtieRisk.jl/ffi/zig/test/integration_test.zig` (line 2)
 - `/var/mnt/eclipse/repos/BowtieRisk.jl/docs/CITATIONS.adoc` (line 13)
 
-**Problem:** These files use `SPDX-License-Identifier: AGPL-3.0-or-later` or `license = {AGPL-3.0-or-later}`. Per CLAUDE.md license policy, AGPL-3.0 is NEVER allowed. All hyperpolymath original code must use PMPL-1.0-or-later.
+**Problem:** These files use `SPDX-License-Identifier: PMPL-1.0-or-later` or `license = {AGPL-3.0-or-later}`. Per CLAUDE.md license policy, AGPL-3.0 is NEVER allowed. All hyperpolymath original code must use PMPL-1.0-or-later.
 
 **What to do:**
 1. In each file listed, replace `AGPL-3.0-or-later` with `PMPL-1.0-or-later`.
@@ -68,15 +68,15 @@ grep -rn "AGPL" /var/mnt/eclipse/repos/BowtieRisk.jl/ | grep -v ".git/" | grep -
 - `/var/mnt/eclipse/repos/BowtieRisk.jl/ffi/zig/src/main.zig` (lines 1, 12, 54, 73, 89, 113, 135, 148, 184, 198, 203, 215, 246, 256, 257, 259, 263, 266, 271)
 - `/var/mnt/eclipse/repos/BowtieRisk.jl/ffi/zig/test/integration_test.zig` (lines 1, 10-17, 24-25, 31-32, 34, 39, 48-49, 51, 56, 65-66, 68-69, 75, 84, 86, 96-97, 99, 110, 117, 129-130, 132-133, 138-139, 143, 145-146, 150, 158-159, 168)
 
-**Problem:** Dozens of files still contain `{{PROJECT}}`, `{{project}}`, `{{OWNER}}`, `{{REPO}}`, `{{FORGE}}` template placeholders from the RSR template repo.
+**Problem:** Dozens of files still contain `{{PROJECT}}`, `{{project}}`, `hyperpolymath`, `BowtieRisk.jl`, `github.com` template placeholders from the RSR template repo.
 
 **What to do:**
 1. Replace `{{PROJECT}}` with `BowtieRisk` (used in Idris module names, Zig comments)
 2. Replace `{{project}}` with `bowtierisk` (used in C function names, library names)
-3. Replace `{{OWNER}}` with `hyperpolymath`
-4. Replace `{{REPO}}` with `BowtieRisk.jl`
-5. Replace `{{FORGE}}` with `github.com`
-6. Replace `{{SECURITY_EMAIL}}` with `jonathan.jewell@open.ac.uk` (in SECURITY.md)
+3. Replace `hyperpolymath` with `hyperpolymath`
+4. Replace `BowtieRisk.jl` with `BowtieRisk.jl`
+5. Replace `github.com` with `github.com`
+6. Replace `6759885+hyperpolymath@users.noreply.github.com` with `j.d.a.jewell@open.ac.uk` (in SECURITY.md)
 7. Do a global search to confirm zero remaining `{{` patterns.
 
 **Verification:**
