@@ -39,11 +39,11 @@ nothing to do with BowtieRisk.jl.
 - `/var/mnt/eclipse/repos/BowtieRisk.jl/ffi/zig/test/integration_test.zig` (line 2)
 - `/var/mnt/eclipse/repos/BowtieRisk.jl/docs/CITATIONS.adoc` (line 13)
 
-**Problem:** These files use `SPDX-License-Identifier: PMPL-1.0-or-later` or `license = {AGPL-3.0-or-later}`. Per CLAUDE.md license policy, AGPL-3.0 is NEVER allowed. All hyperpolymath original code must use PMPL-1.0-or-later.
+**Problem:** These files use `SPDX-License-Identifier: PMPL-1.0-or-later` or `license = {PMPL-1.0-or-later}`. Per CLAUDE.md license policy, AGPL-3.0 is NEVER allowed. All hyperpolymath original code must use PMPL-1.0-or-later.
 
 **What to do:**
-1. In each file listed, replace `AGPL-3.0-or-later` with `PMPL-1.0-or-later`.
-2. In `docs/CITATIONS.adoc` line 13, change `license = {AGPL-3.0-or-later}` to `license = {PMPL-1.0-or-later}`.
+1. In each file listed, replace `PMPL-1.0-or-later` with `PMPL-1.0-or-later`.
+2. In `docs/CITATIONS.adoc` line 13, change `license = {PMPL-1.0-or-later}` to `license = {PMPL-1.0-or-later}`.
 3. Also update the citation to reference `BowtieRisk.jl` instead of `RSR-template-repo` (lines 8-15) -- fix `author`, `title`, and `url` fields.
 
 **Verification:**
