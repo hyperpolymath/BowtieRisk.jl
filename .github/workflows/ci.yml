@@ -1,10 +1,8 @@
 # SPDX-License-Identifier: PMPL-1.0-or-later
 name: CI
-
 on:
   push:
   pull_request:
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -20,3 +18,4 @@ jobs:
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Run tests
         run: julia --project=. -e 'using Pkg; Pkg.test()'
+permissions: read-all
