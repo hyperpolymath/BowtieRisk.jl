@@ -25,13 +25,13 @@ jobs:
         julia-version: ['1.10']
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
 
       - uses: julia-actions/setup-julia@824fb972babf1837cf21c49159bf8a8130f26840 # v2
         with:
           version: ${{ matrix.julia-version }}
 
-      - uses: julia-actions/cache@e8472695fb3c2028b1118dc399c8440ff497d409 # v2
+      - uses: julia-actions/cache@b56ac815fc0bb3999501ca86291fa3d875c622ee # v2
 
       - name: Build and test
         run: |
@@ -54,7 +54,7 @@ jobs:
     needs: build
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
 
       - uses: julia-actions/setup-julia@824fb972babf1837cf21c49159bf8a8130f26840 # v2
         with:
@@ -102,10 +102,10 @@ jobs:
     needs: [build, sbom]
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4
 
       - name: Download artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: release-artifacts/
 
@@ -126,7 +126,7 @@ jobs:
           fi
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: BowtieRisk.jl ${{ steps.version.outputs.version }}
