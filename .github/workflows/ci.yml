@@ -18,4 +18,5 @@ jobs:
         run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
       - name: Run tests
         run: julia --project=. -e 'using Pkg; Pkg.test()'
-permissions: read-all
+permissions:
+  contents: read
