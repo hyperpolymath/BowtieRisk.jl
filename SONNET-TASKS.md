@@ -26,18 +26,18 @@ nothing to do with BowtieRisk.jl.
 4. Do NOT mark done unless verification passes.
 5. Update STATE.scm with honest completion percentages after each task.
 6. Commit after each task: `fix(component): complete <description>`
-7. Run full test suite after every 3 tasks: `cd /var/mnt/eclipse/repos/BowtieRisk.jl && julia --project=. -e 'using Pkg; Pkg.test()'`
+7. Run full test suite after every 3 tasks: `cd /var$REPOS_DIR/BowtieRisk.jl && julia --project=. -e 'using Pkg; Pkg.test()'`
 
 ---
 
 ## TASK 1: Fix AGPL-3.0 license headers to PMPL-1.0-or-later (CRITICAL)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/examples/SafeDOMExample.res` (line 1)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/ffi/zig/build.zig` (line 2)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/ffi/zig/src/main.zig` (line 6)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/ffi/zig/test/integration_test.zig` (line 2)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/docs/CITATIONS.adoc` (line 13)
+- `/var$REPOS_DIR/BowtieRisk.jl/examples/SafeDOMExample.res` (line 1)
+- `/var$REPOS_DIR/BowtieRisk.jl/ffi/zig/build.zig` (line 2)
+- `/var$REPOS_DIR/BowtieRisk.jl/ffi/zig/src/main.zig` (line 6)
+- `/var$REPOS_DIR/BowtieRisk.jl/ffi/zig/test/integration_test.zig` (line 2)
+- `/var$REPOS_DIR/BowtieRisk.jl/docs/CITATIONS.adoc` (line 13)
 
 **Problem:** These files use `SPDX-License-Identifier: PMPL-1.0-or-later` or `license = {PMPL-1.0-or-later}`. Per CLAUDE.md license policy, AGPL-3.0 is NEVER allowed. All hyperpolymath original code must use PMPL-1.0-or-later.
 
@@ -48,7 +48,7 @@ nothing to do with BowtieRisk.jl.
 
 **Verification:**
 ```bash
-grep -rn "AGPL" /var/mnt/eclipse/repos/BowtieRisk.jl/ | grep -v ".git/" | grep -v "SONNET-TASKS"
+grep -rn "AGPL" /var$REPOS_DIR/BowtieRisk.jl/ | grep -v ".git/" | grep -v "SONNET-TASKS"
 # Expected: zero lines of output
 ```
 
@@ -57,16 +57,16 @@ grep -rn "AGPL" /var/mnt/eclipse/repos/BowtieRisk.jl/ | grep -v ".git/" | grep -
 ## TASK 2: Replace all RSR template placeholders (CRITICAL)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/CONTRIBUTING.md` (lines 2, 3, 9, 10, 20, 89-92)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/CODE_OF_CONDUCT.md` (lines 9, 10, 313)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/SECURITY.md` (lines 9, 10, 43, 206, 325, 374, 386, 387)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/ABI-FFI-README.md` (lines 3, 29, 42, 53, 70, 74, 202, 225, 228, 231, 233, 237, 244, 250, 267, 269-271, 276, 279, 282, 290, 293, 299, 304, 358)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/src/abi/Types.idr` (lines 6, 11)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/src/abi/Layout.idr` (lines 8, 10)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/src/abi/Foreign.idr` (lines 9, 11, 12, 23, 35, 49, 72, 77, 98, 125, 152, 164, 185, 211)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/ffi/zig/build.zig` (lines 1, 12, 23, 35, 36, 82)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/ffi/zig/src/main.zig` (lines 1, 12, 54, 73, 89, 113, 135, 148, 184, 198, 203, 215, 246, 256, 257, 259, 263, 266, 271)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/ffi/zig/test/integration_test.zig` (lines 1, 10-17, 24-25, 31-32, 34, 39, 48-49, 51, 56, 65-66, 68-69, 75, 84, 86, 96-97, 99, 110, 117, 129-130, 132-133, 138-139, 143, 145-146, 150, 158-159, 168)
+- `/var$REPOS_DIR/BowtieRisk.jl/CONTRIBUTING.md` (lines 2, 3, 9, 10, 20, 89-92)
+- `/var$REPOS_DIR/BowtieRisk.jl/CODE_OF_CONDUCT.md` (lines 9, 10, 313)
+- `/var$REPOS_DIR/BowtieRisk.jl/SECURITY.md` (lines 9, 10, 43, 206, 325, 374, 386, 387)
+- `/var$REPOS_DIR/BowtieRisk.jl/ABI-FFI-README.md` (lines 3, 29, 42, 53, 70, 74, 202, 225, 228, 231, 233, 237, 244, 250, 267, 269-271, 276, 279, 282, 290, 293, 299, 304, 358)
+- `/var$REPOS_DIR/BowtieRisk.jl/src/abi/Types.idr` (lines 6, 11)
+- `/var$REPOS_DIR/BowtieRisk.jl/src/abi/Layout.idr` (lines 8, 10)
+- `/var$REPOS_DIR/BowtieRisk.jl/src/abi/Foreign.idr` (lines 9, 11, 12, 23, 35, 49, 72, 77, 98, 125, 152, 164, 185, 211)
+- `/var$REPOS_DIR/BowtieRisk.jl/ffi/zig/build.zig` (lines 1, 12, 23, 35, 36, 82)
+- `/var$REPOS_DIR/BowtieRisk.jl/ffi/zig/src/main.zig` (lines 1, 12, 54, 73, 89, 113, 135, 148, 184, 198, 203, 215, 246, 256, 257, 259, 263, 266, 271)
+- `/var$REPOS_DIR/BowtieRisk.jl/ffi/zig/test/integration_test.zig` (lines 1, 10-17, 24-25, 31-32, 34, 39, 48-49, 51, 56, 65-66, 68-69, 75, 84, 86, 96-97, 99, 110, 117, 129-130, 132-133, 138-139, 143, 145-146, 150, 158-159, 168)
 
 **Problem:** Dozens of files still contain `{{PROJECT}}`, `{{project}}`, `hyperpolymath`, `BowtieRisk.jl`, `github.com` template placeholders from the RSR template repo.
 
@@ -81,7 +81,7 @@ grep -rn "AGPL" /var/mnt/eclipse/repos/BowtieRisk.jl/ | grep -v ".git/" | grep -
 
 **Verification:**
 ```bash
-grep -rn '{{' /var/mnt/eclipse/repos/BowtieRisk.jl/ --include="*.md" --include="*.adoc" --include="*.idr" --include="*.zig" --include="*.res" --include="*.json" | grep -v ".git/" | grep -v "SONNET-TASKS"
+grep -rn '{{' /var$REPOS_DIR/BowtieRisk.jl/ --include="*.md" --include="*.adoc" --include="*.idr" --include="*.zig" --include="*.res" --include="*.json" | grep -v ".git/" | grep -v "SONNET-TASKS"
 # Expected: zero lines of output
 ```
 
@@ -90,9 +90,9 @@ grep -rn '{{' /var/mnt/eclipse/repos/BowtieRisk.jl/ --include="*.md" --include="
 ## TASK 3: Remove irrelevant SafeDOM example, add actual Julia example (HIGH)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/examples/SafeDOMExample.res` (DELETE)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/examples/web-project-deno.json` (DELETE)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/examples/basic_bowtie.jl` (CREATE)
+- `/var$REPOS_DIR/BowtieRisk.jl/examples/SafeDOMExample.res` (DELETE)
+- `/var$REPOS_DIR/BowtieRisk.jl/examples/web-project-deno.json` (DELETE)
+- `/var$REPOS_DIR/BowtieRisk.jl/examples/basic_bowtie.jl` (CREATE)
 
 **Problem:** The `examples/` directory contains a ReScript SafeDOM example and a Deno config file. Neither has anything to do with BowtieRisk.jl. These are template leftovers.
 
@@ -110,7 +110,7 @@ grep -rn '{{' /var/mnt/eclipse/repos/BowtieRisk.jl/ --include="*.md" --include="
 
 **Verification:**
 ```julia
-cd("/var/mnt/eclipse/repos/BowtieRisk.jl")
+cd("/var$REPOS_DIR/BowtieRisk.jl")
 include("examples/basic_bowtie.jl")
 # Expected: runs without error, prints summary data, creates temporary output files
 ```
@@ -120,9 +120,9 @@ include("examples/basic_bowtie.jl")
 ## TASK 4: Create missing .machine_readable/ directory with SCM files (HIGH)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/.machine_readable/STATE.scm` (CREATE)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/.machine_readable/META.scm` (CREATE)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/.machine_readable/ECOSYSTEM.scm` (CREATE)
+- `/var$REPOS_DIR/BowtieRisk.jl/.machine_readable/STATE.scm` (CREATE)
+- `/var$REPOS_DIR/BowtieRisk.jl/.machine_readable/META.scm` (CREATE)
+- `/var$REPOS_DIR/BowtieRisk.jl/.machine_readable/ECOSYSTEM.scm` (CREATE)
 
 **Problem:** The `.machine_readable/` directory is entirely missing. Per CLAUDE.md checkpoint file protocol, every repo MUST have STATE.scm, META.scm, and ECOSYSTEM.scm in `.machine_readable/`. They must NEVER be in the repository root.
 
@@ -145,9 +145,9 @@ include("examples/basic_bowtie.jl")
 
 **Verification:**
 ```bash
-test -f /var/mnt/eclipse/repos/BowtieRisk.jl/.machine_readable/STATE.scm && \
-test -f /var/mnt/eclipse/repos/BowtieRisk.jl/.machine_readable/META.scm && \
-test -f /var/mnt/eclipse/repos/BowtieRisk.jl/.machine_readable/ECOSYSTEM.scm && \
+test -f /var$REPOS_DIR/BowtieRisk.jl/.machine_readable/STATE.scm && \
+test -f /var$REPOS_DIR/BowtieRisk.jl/.machine_readable/META.scm && \
+test -f /var$REPOS_DIR/BowtieRisk.jl/.machine_readable/ECOSYSTEM.scm && \
 echo "PASS" || echo "FAIL"
 ```
 
@@ -156,9 +156,9 @@ echo "PASS" || echo "FAIL"
 ## TASK 5: Fix Documenter.jl -- create missing api.md page (MEDIUM)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/docs/src/api.md` (CREATE)
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/docs/src/index.md` (line 17: "Examples coming soon")
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/docs/make.jl` (already references `api.md` at line 12)
+- `/var$REPOS_DIR/BowtieRisk.jl/docs/src/api.md` (CREATE)
+- `/var$REPOS_DIR/BowtieRisk.jl/docs/src/index.md` (line 17: "Examples coming soon")
+- `/var$REPOS_DIR/BowtieRisk.jl/docs/make.jl` (already references `api.md` at line 12)
 
 **Problem:** `docs/make.jl` at line 12 declares `pages = ["Home" => "index.md", "API" => "api.md"]` but `docs/src/api.md` does not exist. The docs build will fail. Also, `index.md` line 17 says "Examples coming soon" which is a placeholder.
 
@@ -179,7 +179,7 @@ echo "PASS" || echo "FAIL"
 
 **Verification:**
 ```julia
-cd("/var/mnt/eclipse/repos/BowtieRisk.jl")
+cd("/var$REPOS_DIR/BowtieRisk.jl")
 using Pkg; Pkg.activate("docs")
 Pkg.develop(path=".")
 Pkg.add("Documenter")
@@ -192,7 +192,7 @@ include("docs/make.jl")
 ## TASK 6: Fix test suite dead code and add missing template tests (MEDIUM)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/test/runtests.jl` (lines 118, 157-167)
+- `/var$REPOS_DIR/BowtieRisk.jl/test/runtests.jl` (lines 118, 157-167)
 
 **Problem:**
 - Line 118: `@test hasproperty(sim, :top_event_std) || true` -- `SimulationResult` does NOT have a `top_event_std` field (line 141-145 of BowtieRisk.jl). `hasproperty` will return `false`, but `|| true` makes the test always pass. This is dead code that hides a missing feature.
@@ -211,7 +211,7 @@ include("docs/make.jl")
 
 **Verification:**
 ```julia
-cd("/var/mnt/eclipse/repos/BowtieRisk.jl")
+cd("/var$REPOS_DIR/BowtieRisk.jl")
 using Pkg; Pkg.test()
 # Expected: all tests pass, no silently caught errors
 ```
@@ -221,7 +221,7 @@ using Pkg; Pkg.test()
 ## TASK 7: Customize ROADMAP.adoc from template boilerplate (LOW)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/ROADMAP.adoc`
+- `/var$REPOS_DIR/BowtieRisk.jl/ROADMAP.adoc`
 
 **Problem:** `ROADMAP.adoc` still contains the RSR template boilerplate ("YOUR Template Repo Roadmap", "Initial development phase", generic milestones). Meanwhile `ROADMAP.md` has real BowtieRisk.jl-specific content. Having two conflicting ROADMAP files is confusing.
 
@@ -231,7 +231,7 @@ using Pkg; Pkg.test()
 
 **Verification:**
 ```bash
-ls /var/mnt/eclipse/repos/BowtieRisk.jl/ROADMAP*
+ls /var$REPOS_DIR/BowtieRisk.jl/ROADMAP*
 # Expected: exactly one ROADMAP file (either .md or .adoc, not both)
 ```
 
@@ -240,7 +240,7 @@ ls /var/mnt/eclipse/repos/BowtieRisk.jl/ROADMAP*
 ## TASK 8: Customize CITATIONS.adoc for BowtieRisk.jl (LOW)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/docs/CITATIONS.adoc`
+- `/var$REPOS_DIR/BowtieRisk.jl/docs/CITATIONS.adoc`
 
 **Problem:** Lines 8-15 still reference `rsr-template-repo` and `Polymath, Hyper` as author. This is the template boilerplate.
 
@@ -254,7 +254,7 @@ ls /var/mnt/eclipse/repos/BowtieRisk.jl/ROADMAP*
 
 **Verification:**
 ```bash
-grep -c "RSR-template-repo\|Polymath, Hyper\|Polymath, H\.\|Hyper Polymath" /var/mnt/eclipse/repos/BowtieRisk.jl/docs/CITATIONS.adoc
+grep -c "RSR-template-repo\|Polymath, Hyper\|Polymath, H\.\|Hyper Polymath" /var$REPOS_DIR/BowtieRisk.jl/docs/CITATIONS.adoc
 # Expected: 0
 ```
 
@@ -263,7 +263,7 @@ grep -c "RSR-template-repo\|Polymath, Hyper\|Polymath, H\.\|Hyper Polymath" /var
 ## TASK 9: Customize README.adoc from template boilerplate (LOW)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/README.adoc`
+- `/var$REPOS_DIR/BowtieRisk.jl/README.adoc`
 
 **Problem:** `README.adoc` still says "This is your repo - don't forget to rename me!" (line 3) and contains RSR template instructions about SafeDOM, ReScript, Idris2, etc. None of this is relevant to BowtieRisk.jl. Meanwhile `README.md` has the real project README.
 
@@ -273,7 +273,7 @@ grep -c "RSR-template-repo\|Polymath, Hyper\|Polymath, H\.\|Hyper Polymath" /var
 
 **Verification:**
 ```bash
-test ! -f /var/mnt/eclipse/repos/BowtieRisk.jl/README.adoc && test -f /var/mnt/eclipse/repos/BowtieRisk.jl/README.md && echo "PASS" || echo "FAIL"
+test ! -f /var$REPOS_DIR/BowtieRisk.jl/README.adoc && test -f /var$REPOS_DIR/BowtieRisk.jl/README.md && echo "PASS" || echo "FAIL"
 ```
 
 ---
@@ -281,7 +281,7 @@ test ! -f /var/mnt/eclipse/repos/BowtieRisk.jl/README.adoc && test -f /var/mnt/e
 ## TASK 10: Add consequence-side sensitivity to sensitivity_tornado (LOW)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/src/BowtieRisk.jl` (lines 310-336)
+- `/var$REPOS_DIR/BowtieRisk.jl/src/BowtieRisk.jl` (lines 310-336)
 
 **Problem:** `sensitivity_tornado` only perturbs barriers on `model.threat_paths` (lines 314-331). It completely ignores barriers on `model.consequence_paths`. This means mitigative barriers are invisible to the sensitivity analysis, which defeats the purpose of a bowtie (which has barriers on both sides).
 
@@ -321,7 +321,7 @@ barrier_names = [t[1] for t in tornado]
 ## TASK 11: Add missing `api.md` Documenter pages reference for BowtieSummary (LOW)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/src/BowtieRisk.jl` (lines 7-17 exports, line 244)
+- `/var$REPOS_DIR/BowtieRisk.jl/src/BowtieRisk.jl` (lines 7-17 exports, line 244)
 
 **Problem:** `BowtieSummary` (line 244) is a return type from `evaluate()` but is NOT exported. Users calling `evaluate(model)` get back a `BowtieSummary` struct and must access `.top_event_probability`, `.threat_residuals`, `.consequence_probabilities`, `.consequence_risks` -- but they cannot reference the type by name without `BowtieRisk.BowtieSummary`.
 
@@ -341,7 +341,7 @@ summary = evaluate(template_model(:process_safety))
 ## TASK 12: Model schema is too shallow -- add property definitions (LOW)
 
 **Files:**
-- `/var/mnt/eclipse/repos/BowtieRisk.jl/src/BowtieRisk.jl` (lines 432-446)
+- `/var$REPOS_DIR/BowtieRisk.jl/src/BowtieRisk.jl` (lines 432-446)
 
 **Problem:** `model_schema()` returns a JSON schema where every property is just `Dict("type" => "object")` or `Dict("type" => "array")`. This is not useful for validation -- it would accept any JSON object as a valid bowtie model. The schema should define nested properties for hazard, threat_paths, consequence_paths, etc.
 
@@ -369,7 +369,7 @@ schema = model_schema()
 After completing all tasks, run:
 
 ```bash
-cd /var/mnt/eclipse/repos/BowtieRisk.jl
+cd /var$REPOS_DIR/BowtieRisk.jl
 
 # 1. All tests pass
 julia --project=. -e 'using Pkg; Pkg.test()'
