@@ -1,42 +1,155 @@
 // SPDX-License-Identifier: PMPL-1.0-or-later
+// Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = BowtieRisk.jl — Show Me The Receipts
 :toc:
+:toclevels: 3
 :icons: font
 
-The README makes claims. This file backs them up.
+The README makes claims. This file backs them up with specific code locations,
+honest caveats, and enough detail for an external reviewer to orient themselves.
 
-[quote, README]
-____
-See the link:README.adoc[README] for details.
-____
+== README Claims — Verified
 
-== Technology Choices
+=== Claim 1: "Supports Monte Carlo simulation with configurable barrier distributions"
 
-[cols="1,2"]
-|===
-| Technology | Learn More
+*True.* `src/BowtieRisk.jl` implements `simulate/2` (line ~309).
+It accepts a `Dict{Symbol, BarrierDistribution}` and draws from `:fixed`,
+`:beta`, or `:triangular` distributions per barrier via `_sample_distribution`.
+The triangular sampler uses the standard CDF-inversion method.
+Results are returned as `SimulationResult` with per-consequence mean vectors
+and raw top-event samples for downstream histogram work.
 
-| **Zig** | https://ziglang.org
-| **Julia** | https://julialang.org
-| **Idris2 ABI** | https://www.idris-lang.org
-|===
+*Caveat:* The default `samples=1000` is sufficient for ballpark estimates but
+inadequate for tail-risk quantification; callers modelling rare events should
+increase this substantially.
+
+=== Claim 2: "Independent and dependent probability models"
+
+*True.* `_combined_barrier_reduction` in `src/BowtieRisk.jl` (line ~240) branches
+on `ProbabilityModel.mode`. `:independent` multiplies `(1 - eff)` terms naively.
+`:dependent` groups barriers by their `dependency::Symbol` field and takes the
+minimum effectiveness within each group before multiplying — modelling common-cause
+failures where shared-infrastructure barriers cannot both succeed independently.
+
+*Caveat:* The `:dependent` model uses a simple min-of-group approximation.
+This is conservative and does not model partial correlations; users needing
+precise common-cause analysis should treat outputs as bounds.
+
+=== Claim 3: "Tornado sensitivity analysis for barrier effectiveness"
+
+*True.* `sensitivity_tornado/1` (line ~336) perturbs each barrier's
+effectiveness by ±`delta` (default 0.1), re-evaluates the full model, and
+returns results sorted by `|low - high|` swing. It covers both threat-side
+and consequence-side barriers, the latter measuring impact on summed
+`consequence_risks` rather than top-event probability directly.
+
+== How It Works
+
+A `BowtieModel` is a record of five constituents: a `Hazard`, a `TopEvent`,
+a vector of `ThreatPath` (left wing), a vector of `ConsequencePath` (right wing),
+and a `ProbabilityModel`. Evaluation flows:
+
+. Each `ThreatPath` reduces its threat's baseline probability through
+  `_residual_probability` — applying barrier degradation and escalation factors.
+. The top-event probability combines residual threats via
+  `1 - prod(1 - r for r in residuals)`.
+. Each `ConsequencePath` applies the same reduction to the top-event probability,
+  then multiplies by `consequence.severity` to produce a risk score.
+
+There are no external solver calls; the entire evaluation is closed-form arithmetic.
+JSON serialisation round-trips through `write_model_json`/`read_model_json` using
+`JSON3.jl`. Two built-in templates — `:process_safety` and `:cyber_incident` — give
+reviewers immediately runnable examples.
+
+== Honest Caveats
+
+* The package is listed at 72% completion in TOPOLOGY.md. ABI/FFI directories
+  (`src/abi/`, `ffi/zig/`) exist as structural stubs but contain no implemented
+  Idris2 proofs or Zig bindings yet.
+* No uncertainty propagation on input probabilities (only on barrier distributions).
+* The CUDA/Metal/AMDGPU weak-deps (`ext/`) are scaffolded in `Project.toml` but
+  the extension files are minimal boilerplate; GPU acceleration is not operative.
+* `load_simple_csv` is a thin utility; it does not handle quoted fields or
+  multi-line values.
 
 == Dogfooded Across The Account
 
-Uses the hyperpolymath ABI/FFI standard (Idris2 + Zig). Same pattern used across
-https://github.com/hyperpolymath/proven[proven],
-https://github.com/hyperpolymath/burble[burble], and
-https://github.com/hyperpolymath/gossamer[gossamer].
+[cols="2,3"]
+|===
+| Where | How BowtieRisk is relevant
+
+| https://github.com/hyperpolymath/developer-ecosystem[developer-ecosystem]
+  `julia-ecosystem/`
+| Julia ecosystem tooling uses the same RSR-compliant Julia package structure
+  (Project.toml, test/, benches/, contractiles/) that BowtieRisk follows.
+
+| https://github.com/hyperpolymath/statistease[statistease]
+| Statistease produces the statistical baselines (distributions, regression
+  outputs) that feed a BowtieRisk threat-probability calibration workflow.
+
+| https://github.com/hyperpolymath/hypatia[hypatia]
+| Hypatia CI scans all Julia packages including BowtieRisk for SPDX compliance,
+  RSR-antipattern violations, and workflow standards.
+
+| https://github.com/hyperpolymath/InvestigativeJournalist.jl[InvestigativeJournalist.jl]
+| IJ's `model_instability_context` outputs can be fed as threat-probability
+  estimates into a BowtieRisk bowtie for journalistic risk modelling.
+|===
 
 == File Map
 
-[cols="1,2"]
+[cols="2,3"]
 |===
-| Path | What's There
+| Path | What is There
 
-| `src/` | Source code
-| `ffi/` | Foreign function interface
-| `test(s)/` | Test suite
+| `src/BowtieRisk.jl`
+| The entire package in one file. Types (`Hazard`, `Threat`, `TopEvent`,
+  `Consequence`, `Barrier`, `EscalationFactor`, `ThreatPath`,
+  `ConsequencePath`, `BowtieModel`), evaluation, simulation, diagramming,
+  reporting, JSON I/O, templates, and schema generation.
+
+| `src/backends/abstract.jl`
+| AcceleratorGate coprocessor-dispatch hook (GPU backend stub).
+
+| `src/abi/`
+| Idris2 ABI definitions directory — currently scaffolded, not yet populated.
+
+| `test/runtests.jl`
+| Property-level unit tests: constructs a two-threat, two-consequence model;
+  verifies `evaluate` correctness; tests zero-threat, perfect-barrier, and
+  dependent-model edge cases. Checks `simulate` and `sensitivity_tornado`.
+
+| `test/e2e_test.jl`
+| End-to-end tests: template instantiation, JSON round-trip, Mermaid/GraphViz
+  output smoke-tests, CSV writing.
+
+| `test/property_test.jl`
+| Property-based tests: probability bounds invariants (top-event P in [0,1],
+  consequence P <= top-event P, risk scores non-negative).
+
+| `benches/benchmarks.jl`
+| BenchmarkTools suite measuring `evaluate`, `simulate` (100 and 1000 samples),
+  and `sensitivity_tornado` throughput.
+
+| `ffi/`
+| Zig FFI directory — structural stub, no operative bindings yet.
+
+| `ext/`
+| GPU extension entry points for CUDA, Metal, AMDGPU weak dependencies.
+
+| `Project.toml`
+| Package metadata: name `BowtieRisk`, v1.0.0, MPL-2.0 (fallback from PMPL-1.0-or-later
+  for Julia registry); deps include `JSON3`, `Distributions`, `LinearAlgebra`.
+
+| `examples/`
+| Worked examples for process-safety and cyber-incident template models with
+  CSV/Markdown report outputs.
+
+| `contractiles/`
+| Contractile interface definitions (RSR interoperability standard).
+
+| `stapeln.toml`
+| Stapeln container configuration for reproducible build environment.
 |===
 
 == Questions?
