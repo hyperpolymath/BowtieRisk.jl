@@ -1,9 +1,13 @@
+// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
+
+= BowtieRisk.jl
+:toc: preamble
+:icons: font
+
 image:https://img.shields.io/badge/License-PMPL--1.0-blue.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
-
-# BowtieRisk.jl
-
-[![Project Topology](https://img.shields.io/badge/Project-Topology-9558B2)](TOPOLOGY.md)
-[![Completion Status](https://img.shields.io/badge/Completion-72%25-yellow)](TOPOLOGY.md)
+image:https://img.shields.io/badge/Project-Topology-9558B2[Project Topology,link="TOPOLOGY.md"]
+image:https://img.shields.io/badge/Completion-72%25-yellow[Completion Status,link="TOPOLOGY.md"]
 
 BowtieRisk.jl provides a Julia framework for bowtie risk modeling with an
 event-chain view, escalation factors, and basic dependency handling. It is
@@ -14,52 +18,57 @@ This is a new project scaffold with a small, explicit core model. It focuses on
 clear data structures, transparent assumptions, and simple calculations that can
 be extended for domain-specific needs.
 
-## Installation
+== Installation
 
-### From Julia REPL
-```julia
+=== From Julia REPL
+
+[source,julia]
+----
 using Pkg
 Pkg.add("BowtieRisk")
-```
+----
 
-### From Git (Development)
-```julia
+=== From Git (Development)
+
+[source,julia]
+----
 using Pkg
 Pkg.add(url="https://github.com/hyperpolymath/BowtieRisk.jl")
-```
+----
 
-## Core Concepts
+== Core Concepts
 
-- **Hazard**: the source of potential harm.
-- **Threats**: initiating causes that may trigger a top event.
-- **Top Event**: the moment control is lost (center of the bowtie).
-- **Consequences**: outcomes following the top event.
-- **Barriers**: preventive (left side) or mitigative (right side) controls.
-- **Escalation factors**: conditions that reduce barrier effectiveness.
-- **Dependencies**: shared-cause failures across barrier groups.
-- **Simulation**: Monte Carlo evaluation with barrier distributions.
-- **Reporting**: Markdown and CSV outputs for sensitivity data.
-- **Templates**: built-in starter models for common scenarios.
-- **Schema**: JSON schema for UI integrations.
-- **Event Chain**: ordered events with probabilities and barriers.
+* *Hazard*: the source of potential harm.
+* *Threats*: initiating causes that may trigger a top event.
+* *Top Event*: the moment control is lost (center of the bowtie).
+* *Consequences*: outcomes following the top event.
+* *Barriers*: preventive (left side) or mitigative (right side) controls.
+* *Escalation factors*: conditions that reduce barrier effectiveness.
+* *Dependencies*: shared-cause failures across barrier groups.
+* *Simulation*: Monte Carlo evaluation with barrier distributions.
+* *Reporting*: Markdown and CSV outputs for sensitivity data.
+* *Templates*: built-in starter models for common scenarios.
+* *Schema*: JSON schema for UI integrations.
+* *Event Chain*: ordered events with probabilities and barriers.
 
-## Probability Model (Baseline)
+== Probability Model (Baseline)
 
 This package assumes independent threats and independent barriers by default.
 You can switch to a dependency-aware model for shared-cause failures. Under the
 independent assumptions:
 
-- Threat residual = `p(threat) * Π(1 - barrier_effectiveness)`
-- Top event probability = `1 - Π(1 - threat_residual)`
-- Consequence probability = `p(top_event) * Π(1 - barrier_effectiveness)`
-- Risk score = `probability * severity`
+* Threat residual = `p(threat) * Π(1 - barrier_effectiveness)`
+* Top event probability = `1 - Π(1 - threat_residual)`
+* Consequence probability = `p(top_event) * Π(1 - barrier_effectiveness)`
+* Risk score = `probability * severity`
 
 These formulas are intentionally simple and transparent so they can be replaced
 with richer methods later.
 
-## Quick Start
+== Quick Start
 
-```julia
+[source,julia]
+----
 using BowtieRisk
 
 hazard = Hazard(:LossOfContainment, "Loss of containment from vessel")
@@ -96,28 +105,22 @@ model = BowtieModel(
 
 summary = evaluate(model)
 println(summary.top_event_probability)
-```
+----
 
-## Diagramming Support
+== Diagramming Support
 
 BowtieRisk.jl includes helpers that export Mermaid or GraphViz diagram specs.
-These are design aids for arranging bowtie diagrams.
 
-```julia
+[source,julia]
+----
 spec = to_mermaid(model)
 println(spec)
-```
 
-```julia
 dot = to_graphviz(model)
 println(dot)
-```
 
-```julia
 write_model_json("bowtie.json", model)
-```
 
-```julia
 dist = Dict(
     :ReliefValve => BarrierDistribution(:beta, (2.0, 5.0, 0.0)),
     :GasDetection => BarrierDistribution(:triangular, (0.2, 0.5, 0.9)),
@@ -128,23 +131,23 @@ tornado = sensitivity_tornado(model; delta=0.1)
 
 write_report_markdown("report.md", model; tornado_data=tornado)
 write_tornado_csv("tornado.csv", tornado)
-```
 
-```julia
 model = template_model(:process_safety)
 write_schema_json("bowtie.schema.json")
-```
+----
 
-## Development
+== Development
 
-```bash
+[source,bash]
+----
 julia --project=. -e 'using Pkg; Pkg.instantiate()'
 julia --project=. -e 'using Pkg; Pkg.test()'
-```
+----
 
-## API Snapshot
+== API Snapshot
 
-```julia
+[source,julia]
+----
 Hazard, Threat, TopEvent, Consequence, Barrier, EscalationFactor
 ProbabilityModel, ThreatPath, ConsequencePath, BowtieModel
 Event, EventChain, chain_probability
@@ -153,4 +156,11 @@ evaluate, simulate, sensitivity_tornado
 to_mermaid, to_graphviz
 write_model_json, read_model_json
 report_markdown, write_report_markdown, write_tornado_csv
-```
+----
+
+Wondering how this works? See link:EXPLAINME.adoc[].
+
+== License
+
+SPDX-License-Identifier: PMPL-1.0-or-later +
+See link:LICENSE[LICENSE].
