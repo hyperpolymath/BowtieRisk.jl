@@ -1,5 +1,5 @@
--- SPDX-License-Identifier: PMPL-1.0-or-later
-||| Foreign Function Interface Declarations
+||| SPDX-License-Identifier: PMPL-1.0-or-later
+||| Foreign Function Interface Declarations for BOWTIERISK.JL
 |||
 ||| This module declares all C-compatible functions that will be
 ||| implemented in the Zig FFI layer.
@@ -7,10 +7,10 @@
 ||| All functions are declared here with type signatures and safety proofs.
 ||| Implementations live in ffi/zig/
 
-module BowtieRisk.ABI.Foreign
+module BowtieRisk.jl.ABI.Foreign
 
-import BowtieRisk.ABI.Types
-import BowtieRisk.ABI.Layout
+import BowtieRisk.jl.ABI.Types
+import BowtieRisk.jl.ABI.Layout
 
 %default total
 
@@ -21,7 +21,7 @@ import BowtieRisk.ABI.Layout
 ||| Initialize the library
 ||| Returns a handle to the library instance, or Nothing on failure
 export
-%foreign "C:bowtierisk_init, libbowtierisk"
+%foreign "C:BowtieRisk.jl_init, libBowtieRisk.jl"
 prim__init : PrimIO Bits64
 
 ||| Safe wrapper for library initialization
@@ -33,7 +33,7 @@ init = do
 
 ||| Clean up library resources
 export
-%foreign "C:bowtierisk_free, libbowtierisk"
+%foreign "C:BowtieRisk.jl_free, libBowtieRisk.jl"
 prim__free : Bits64 -> PrimIO ()
 
 ||| Safe wrapper for cleanup
@@ -47,7 +47,7 @@ free h = primIO (prim__free (handlePtr h))
 
 ||| Example operation: process data
 export
-%foreign "C:bowtierisk_process, libbowtierisk"
+%foreign "C:BowtieRisk.jl_process, libBowtieRisk.jl"
 prim__process : Bits64 -> Bits32 -> PrimIO Bits32
 
 ||| Safe wrapper with error handling
@@ -70,12 +70,12 @@ prim__getString : Bits64 -> String
 
 ||| Free C string
 export
-%foreign "C:bowtierisk_free_string, libbowtierisk"
+%foreign "C:BowtieRisk.jl_free_string, libBowtieRisk.jl"
 prim__freeString : Bits64 -> PrimIO ()
 
 ||| Get string result from library
 export
-%foreign "C:bowtierisk_get_string, libbowtierisk"
+%foreign "C:BowtieRisk.jl_get_string, libBowtieRisk.jl"
 prim__getResult : Bits64 -> PrimIO Bits64
 
 ||| Safe string getter
@@ -96,7 +96,7 @@ getString h = do
 
 ||| Process array data
 export
-%foreign "C:bowtierisk_process_array, libbowtierisk"
+%foreign "C:BowtieRisk.jl_process_array, libBowtieRisk.jl"
 prim__processArray : Bits64 -> Bits64 -> Bits32 -> PrimIO Bits32
 
 ||| Safe array processor
@@ -123,7 +123,7 @@ processArray h buf len = do
 
 ||| Get last error message
 export
-%foreign "C:bowtierisk_last_error, libbowtierisk"
+%foreign "C:BowtieRisk.jl_last_error, libBowtieRisk.jl"
 prim__lastError : PrimIO Bits64
 
 ||| Retrieve last error as string
@@ -150,7 +150,7 @@ errorDescription NullPointer = "Null pointer"
 
 ||| Get library version
 export
-%foreign "C:bowtierisk_version, libbowtierisk"
+%foreign "C:BowtieRisk.jl_version, libBowtieRisk.jl"
 prim__version : PrimIO Bits64
 
 ||| Get version as string
@@ -162,7 +162,7 @@ version = do
 
 ||| Get library build info
 export
-%foreign "C:bowtierisk_build_info, libbowtierisk"
+%foreign "C:BowtieRisk.jl_build_info, libBowtieRisk.jl"
 prim__buildInfo : PrimIO Bits64
 
 ||| Get build information
@@ -183,16 +183,13 @@ Callback = Bits64 -> Bits32 -> Bits32
 
 ||| Register a callback
 export
-%foreign "C:bowtierisk_register_callback, libbowtierisk"
+%foreign "C:BowtieRisk.jl_register_callback, libBowtieRisk.jl"
 prim__registerCallback : Bits64 -> AnyPtr -> PrimIO Bits32
 
 ||| Safe callback registration
 export
 registerCallback : Handle -> Callback -> IO (Either Result ())
 registerCallback h cb = do
-  -- SAFETY: cast casts Idris Callback function type to C-compatible AnyPtr.
-  -- Required for FFI callback registration. The Callback type signature MUST match
-  -- the C function pointer type expected by the library's register_callback function.
   result <- primIO (prim__registerCallback (handlePtr h) (cast cb))
   pure $ case resultFromInt result of
     Just Ok => Right ()
@@ -209,7 +206,7 @@ registerCallback h cb = do
 
 ||| Check if library is initialized
 export
-%foreign "C:bowtierisk_is_initialized, libbowtierisk"
+%foreign "C:BowtieRisk.jl_is_initialized, libBowtieRisk.jl"
 prim__isInitialized : Bits64 -> PrimIO Bits32
 
 ||| Check initialization status
