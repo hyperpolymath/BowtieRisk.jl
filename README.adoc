@@ -5,7 +5,9 @@
 :toc: preamble
 :icons: font
 
+image:https://img.shields.io/badge/OpenSSF-Best_Practices-green?logo=opensourcesecurity[OpenSSF Best Practices,link="https://www.bestpractices.dev/en/projects/new?repo_url=https://github.com/hyperpolymath/BowtieRisk.jl"]
 image:https://img.shields.io/badge/License-PMPL--1.0-blue.svg[License: PMPL-1.0,link="https://github.com/hyperpolymath/palimpsest-license"]
+image:https://api.thegreenwebfoundation.org/greencheckimage/github.com[Green Web,link="https://www.thegreenwebfoundation.org/green-web-check/?url=github.com"]
 image:https://img.shields.io/badge/Project-Topology-9558B2[Project Topology,link="TOPOLOGY.md"]
 image:https://img.shields.io/badge/Completion-72%25-yellow[Completion Status,link="TOPOLOGY.md"]
 
