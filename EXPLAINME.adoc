@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: PMPL-1.0-or-later
+// SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2026 Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
 = BowtieRisk.jl — Show Me The Receipts
 :toc:
@@ -138,7 +138,7 @@ reviewers immediately runnable examples.
 | GPU extension entry points for CUDA, Metal, AMDGPU weak dependencies.
 
 | `Project.toml`
-| Package metadata: name `BowtieRisk`, v1.0.0, MPL-2.0 (fallback from PMPL-1.0-or-later
+| Package metadata: name `BowtieRisk`, v1.0.0, MPL-2.0 (fallback from MPL-2.0
   for Julia registry); deps include `JSON3`, `Distributions`, `LinearAlgebra`.
 
 | `examples/`
