@@ -19,6 +19,7 @@ jobs:
   build:
     name: Build Package
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -51,6 +52,7 @@ jobs:
   sbom:
     name: Generate SBOM
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: build
 
     steps:
@@ -99,6 +101,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [build, sbom]
 
     steps:
