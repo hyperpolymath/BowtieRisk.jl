@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: MPL-2.0
 name: Release
-
 on:
   push:
     tags:
@@ -10,11 +9,9 @@ on:
       version:
         description: 'Version to release (e.g., v0.1.0)'
         required: true
-
 permissions:
   contents: write
   id-token: write
-
 jobs:
   build:
     name: Build Package
@@ -24,44 +21,34 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         julia-version: ['1.10']
-
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
-      - uses: julia-actions/setup-julia@4c0cb0fce8556fdb04a90347310e5db8b1f98fb9 # v2
+      - uses: julia-actions/setup-julia@824fb972babf1837cf21c49159bf8a8130f26840 # v2
         with:
           version: ${{ matrix.julia-version }}
-
       - uses: julia-actions/cache@e8472695fb3c2028b1118dc399c8440ff497d409 # v2
-
       - name: Build and test
         run: |
           julia --project -e 'using Pkg; Pkg.build(); Pkg.test()'
-
       - name: Package artifacts
         run: |
           mkdir -p dist
           tar -czf dist/BowtieRisk.jl-${{ matrix.os }}.tar.gz src/ Project.toml README.* LICENSE
-
       - name: Upload artifacts
         uses: actions/upload-artifact@ea165f8d65b6db9a8b71b5c2d1a090c0daf9c8bb # v4
         with:
           name: package-${{ matrix.os }}
           path: dist/
-
   sbom:
     name: Generate SBOM
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: build
-
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
-      - uses: julia-actions/setup-julia@4c0cb0fce8556fdb04a90347310e5db8b1f98fb9 # v2
+      - uses: julia-actions/setup-julia@824fb972babf1837cf21c49159bf8a8130f26840 # v2
         with:
           version: '1.10'
-
       - name: Generate SBOM
         run: |
           julia --project -e '
@@ -91,34 +78,28 @@ jobs:
               JSON.print(f, sbom, 2)
             end
           '
-
       - name: Upload SBOM
         uses: actions/upload-artifact@ea165f8d65b6db9a8b71b5c2d1a090c0daf9c8bb # v4
         with:
           name: sbom
           path: sbom.json
-
   release:
     name: Create Release
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [build, sbom]
-
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
       - name: Download artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: release-artifacts/
-
       - name: Prepare release
         run: |
           mkdir -p release
           find release-artifacts -type f -exec cp {} release/ \;
           cd release
           sha256sum * > checksums.txt
-
       - name: Extract version
         id: version
         run: |
@@ -127,7 +108,6 @@ jobs:
           else
             echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
           fi
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2
         with:
