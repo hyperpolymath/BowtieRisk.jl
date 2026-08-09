@@ -16,7 +16,7 @@ jobs:
         with:
           version: ${{ matrix.julia-version }}
       - name: Install dependencies
-        run: julia --project=. -e 'using Pkg; Pkg.instantiate()'
+        run: julia --project=. -e 'using Pkg; Pkg.develop(url="https://github.com/hyperpolymath/AcceleratorGate.jl.git"); Pkg.instantiate()'
       - name: Run tests
         run: julia --project=. -e 'using Pkg; Pkg.test()'
 permissions:
