@@ -1,18 +1,28 @@
-; SPDX-License-Identifier: MPL-2.0
-;; guix.scm — GNU Guix package definition for BowtieRisk.jl
-;; Usage: guix shell -f guix.scm
+;; SPDX-License-Identifier: MPL-2.0
+;; Guix development environment.
+;; Usage: guix shell -D -f guix.scm
 
 (use-modules (guix packages)
              (guix build-system gnu)
-             (guix licenses))
+             (guix licenses)
+             (gnu packages base)
+             (gnu packages bash)
+             (gnu packages base)
+             (gnu packages java)
+             (gnu packages rust)
+             (gnu packages cmake)
+             (gnu packages zig)
+             (gnu packages golang)
+             (gnu packages node)
+             (gnu packages python))
 
 (package
-  (name "BowtieRisk.jl")
+  (name "bowtierisk.jl")
   (version "0.1.0")
   (source #f)
   (build-system gnu-build-system)
-  (synopsis "BowtieRisk.jl")
-  (description "BowtieRisk.jl — part of the hyperpolymath ecosystem.")
-  (home-page "https://github.com/hyperpolymath/BowtieRisk.jl")
-  (license ((@@ (guix licenses) license) "MPL-2.0"
-             "https://github.com/hyperpolymath/palimpsest-license")))
+  (inputs (list coreutils bash  make openjdk rust cmake zig go node python))
+  (synopsis "bowtierisk.jl")
+  (description "bowtierisk.jl — part of the hyperpolymath ecosystem.")
+  (home-page "https://github.com/hyperpolymath/bowtierisk.jl")
+  (license ((@@ (guix licenses) license) "MPL-2.0" "https://github.com/hyperpolymath/palimpsest-license")))
