@@ -1,21 +1,19 @@
-<!--
-SPDX-License-Identifier: CC-BY-SA-4.0
-Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
--->
-# BowtieRisk.jl
+== BowtieRisk.jl
 
 Documentation for BowtieRisk.jl
 
-## Installation
+=== Installation
 
-```julia
+[source,julia]
+----
 using Pkg
 Pkg.add(url="https://github.com/hyperpolymath/BowtieRisk.jl")
-```
+----
 
-## Quick Start
+=== Quick Start
 
-```julia
+[source,julia]
+----
 using BowtieRisk
 
 # Use a template model
@@ -36,10 +34,10 @@ println("Mean: ", sim.top_event_mean)
 # Export to Mermaid diagram
 diagram = to_mermaid(model)
 println(diagram)
-```
+----
 
-See `examples/basic_bowtie.jl` for a comprehensive example.
+See `+examples/basic_bowtie.jl+` for a comprehensive example.
 
-## API Reference
+=== API Reference
 
-See [API](api.md) for complete reference.
+See link:api.md[API] for complete reference.
