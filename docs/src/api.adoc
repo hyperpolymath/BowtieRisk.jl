@@ -1,86 +1,92 @@
-<!--
-SPDX-License-Identifier: CC-BY-SA-4.0
-Copyright (c) Jonathan D.A. Jewell <j.d.a.jewell@open.ac.uk>
--->
-# API Reference
+== API Reference
 
-## Core Data Structures
+=== Core Data Structures
 
-```@docs
+[source,@docs]
+----
 Hazard
 Threat
 TopEvent
 Consequence
 Barrier
 EscalationFactor
-```
+----
 
-## Model Components
+=== Model Components
 
-```@docs
+[source,@docs]
+----
 ProbabilityModel
 ThreatPath
 ConsequencePath
 BowtieModel
-```
+----
 
-## Simulation
+=== Simulation
 
-```@docs
+[source,@docs]
+----
 BarrierDistribution
 SimulationResult
 simulate
-```
+----
 
-## Evaluation
+=== Evaluation
 
-```@docs
+[source,@docs]
+----
 BowtieSummary
 evaluate
 sensitivity_tornado
-```
+----
 
-## Event Chains
+=== Event Chains
 
-```@docs
+[source,@docs]
+----
 Event
 EventChain
 chain_probability
-```
+----
 
-## Visualization
+=== Visualization
 
-```@docs
+[source,@docs]
+----
 to_mermaid
 to_graphviz
-```
+----
 
-## Reports
+=== Reports
 
-```@docs
+[source,@docs]
+----
 report_markdown
 write_report_markdown
 write_tornado_csv
-```
+----
 
-## Serialization
+=== Serialization
 
-```@docs
+[source,@docs]
+----
 write_model_json
 read_model_json
 write_schema_json
 model_schema
-```
+----
 
-## Templates
+=== Templates
 
-```@docs
+[source,@docs]
+----
 list_templates
 template_model
-```
+----
 
-## Data Import
+=== Data Import
 
-```@docs
+[source,@docs]
+----
 load_simple_csv
-```
+----
