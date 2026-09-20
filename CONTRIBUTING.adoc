@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: CC-BY-SA-4.0
+// SPDX-FileCopyrightText: Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+= Contributing — BowtieRisk.jl
+:toc: left
+
+Contributions to `BowtieRisk.jl` follow the Hyperpolymath estate conventions:
+AsciiDoc for documentation, Conventional Commits, and real (not mocked)
+integration tests where the estate policy applies.
+
+== Local-dev setup
+
+This repository ships a `Justfile`; `just` lists the available recipes.
+
+[source,bash]
+----
+git clone git@github.com:hyperpolymath/BowtieRisk.jl.git
+cd BowtieRisk.jl
+just            # lists the available recipes
+----
+
+== Reporting bugs and suggesting features
+
+* Search existing issues first; check whether `main` already fixes the problem.
+* Use the issue templates where present; include environment details,
+  steps to reproduce, and expected vs actual behaviour.
+
+== Branch naming
+
+[source,text]
+----
+docs/short-description       # Documentation
+test/what-added              # Test additions
+feat/short-description       # New features
+fix/issue-number-description # Bug fixes
+refactor/what-changed        # Code improvements
+security/what-fixed          # Security fixes
+----
+
+== Commit messages
+
+We follow https://www.conventionalcommits.org/[Conventional Commits]:
+
+[source,text]
+----
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
+----
+
+== Cross-references
+
+This root document exists because the estate docs gate
+(`hyperpolymath/standards` `scripts/check-docs-presence.sh`) requires
+`CONTRIBUTING.md`, `CONTRIBUTING.adoc`, or `3-practice/CONTRIBUTING.adoc`
+at the repository root. Estate documentation policy: AsciiDoc by default —
+see `hyperpolymath/standards`.
