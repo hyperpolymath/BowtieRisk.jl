@@ -13,6 +13,8 @@ on:
   push:
     branches: [main, master]
   workflow_dispatch:
+  # TEMPORARY (#61): run the docs build on this PR to read its output. Remove with the diag step.
+  pull_request:
 
 permissions:
   contents: read
