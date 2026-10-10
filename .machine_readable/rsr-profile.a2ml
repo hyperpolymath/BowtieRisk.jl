@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MPL-2.0
+# SPDX-FileCopyrightText: 2026 Jonathan D.A. Jewell (hyperpolymath) <j.d.a.jewell@open.ac.uk>
+#
+# rsr-profile.a2ml — capability declaration for BowtieRisk.jl.
+#
+# Declares the julia-library preset (template-capability-gates.toml [presets]):
+#   julia, library, docs-site, published-package
+# Each declared capability is enforced: docs-site requires docs/ (Documenter
+# build, see .github/workflows/julia-docs.yml); published-package requires
+# the release workflow. Scored against rsr-criteria-v2 (declares-against 2.1.0).
+
+[rsr-profile]
+version          = "1.0.0"
+spec             = "rsr-criteria-v2"
+declares-against = "2.1.0"
+preset           = "julia-library"

@@ -1,19 +1,21 @@
-== BowtieRisk.jl
+# BowtieRisk.jl
 
-Documentation for BowtieRisk.jl
+Documentation for BowtieRisk.jl: bow-tie risk analysis with barrier assessment and Monte Carlo simulation.
 
-=== Installation
+## Installation
 
-[source,julia]
-----
+BowtieRisk depends on AcceleratorGate.jl, which is not in the General registry. Develop it first, from the pinned revision:
+
+```julia
 using Pkg
+Pkg.develop(url="https://github.com/hyperpolymath/AcceleratorGate.jl.git",
+            rev="680205c9c167d1d9ab0bb5a6034852f3d8e06149")
 Pkg.add(url="https://github.com/hyperpolymath/BowtieRisk.jl")
-----
+```
 
-=== Quick Start
+## Quick Start
 
-[source,julia]
-----
+```julia
 using BowtieRisk
 
 # Use a template model
@@ -34,10 +36,10 @@ println("Mean: ", sim.top_event_mean)
 # Export to Mermaid diagram
 diagram = to_mermaid(model)
 println(diagram)
-----
+```
 
-See `+examples/basic_bowtie.jl+` for a comprehensive example.
+See `examples/basic_bowtie.jl` for a comprehensive example.
 
-=== API Reference
+## API Reference
 
-See link:api.md[API] for complete reference.
+See [API](api.md) for the complete reference.

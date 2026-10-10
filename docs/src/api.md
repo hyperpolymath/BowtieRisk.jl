@@ -1,92 +1,82 @@
-== API Reference
+# API Reference
 
-=== Core Data Structures
+## Core Data Structures
 
-[source,@docs]
-----
+```@docs
 Hazard
 Threat
 TopEvent
 Consequence
 Barrier
 EscalationFactor
-----
+```
 
-=== Model Components
+## Model Components
 
-[source,@docs]
-----
+```@docs
 ProbabilityModel
 ThreatPath
 ConsequencePath
 BowtieModel
-----
+```
 
-=== Simulation
+## Simulation
 
-[source,@docs]
-----
+```@docs
 BarrierDistribution
 SimulationResult
 simulate
-----
+```
 
-=== Evaluation
+## Evaluation
 
-[source,@docs]
-----
+```@docs
 BowtieSummary
 evaluate
 sensitivity_tornado
-----
+```
 
-=== Event Chains
+## Event Chains
 
-[source,@docs]
-----
+```@docs
 Event
 EventChain
 chain_probability
-----
+```
 
-=== Visualization
+## Visualization
 
-[source,@docs]
-----
+```@docs
 to_mermaid
 to_graphviz
-----
+```
 
-=== Reports
+## Reports
 
-[source,@docs]
-----
+```@docs
 report_markdown
 write_report_markdown
 write_tornado_csv
-----
+```
 
-=== Serialization
+## Serialization
 
-[source,@docs]
-----
+```@docs
 write_model_json
 read_model_json
 write_schema_json
 model_schema
-----
+```
 
-=== Templates
+## Templates
 
-[source,@docs]
-----
+```@docs
 list_templates
 template_model
-----
+```
 
-=== Data Import
+## Data Import
 
-[source,@docs]
-----
+```@docs
 load_simple_csv
-----
+```
