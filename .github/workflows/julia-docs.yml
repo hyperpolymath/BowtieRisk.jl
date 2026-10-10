@@ -46,7 +46,7 @@ jobs:
       - name: Instantiate the docs environment
         run: |
           julia --project=docs -e 'using Pkg
-            Pkg.develop(url="https://github.com/hyperpolymath/AcceleratorGate.jl.git", rev="680205c9c167d1d9ab0bb5a6034852f3d8e06149")
+            Pkg.add(url="https://github.com/hyperpolymath/AcceleratorGate.jl.git", rev="680205c9c167d1d9ab0bb5a6034852f3d8e06149")
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
       - name: Build and deploy (Documenter deploydocs)

@@ -61,7 +61,7 @@ jobs:
             bad = String[]
             for f in sort(files)
                 text = read(f, String)
-                if text != JuliaFormatter.format_string(text)
+                if text != JuliaFormatter.format_text(text)
                     push!(bad, f)
                 end
             end
@@ -94,7 +94,7 @@ jobs:
           julia -e '
             using Pkg
             Pkg.activate(mktempdir())
-            Pkg.develop(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"])
+            Pkg.add(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"])
             Pkg.develop(path=".")
             Pkg.add(Pkg.PackageSpec(name="JET", version="0.12"))
             using BowtieRisk, JET
@@ -128,7 +128,7 @@ jobs:
       - name: Install dependencies
         run: |
           set +e
-          julia --project=. -e 'using Pkg; Pkg.develop(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"]); Pkg.instantiate()' > install.log 2>&1
+          julia --project=. -e 'using Pkg; Pkg.add(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"]); Pkg.instantiate()' > install.log 2>&1
           rc=$?
           cat install.log
           exit $rc

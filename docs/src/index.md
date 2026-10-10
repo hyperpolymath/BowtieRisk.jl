@@ -4,12 +4,12 @@ Documentation for BowtieRisk.jl: bow-tie risk analysis with barrier assessment a
 
 ## Installation
 
-BowtieRisk depends on AcceleratorGate.jl, which is not in the General registry. Develop it first, from the pinned revision:
+BowtieRisk depends on AcceleratorGate.jl, which is not in the General registry. Add it first, from the pinned revision:
 
 ```julia
 using Pkg
-Pkg.develop(url="https://github.com/hyperpolymath/AcceleratorGate.jl.git",
-            rev="680205c9c167d1d9ab0bb5a6034852f3d8e06149")
+Pkg.add(url="https://github.com/hyperpolymath/AcceleratorGate.jl.git",
+        rev="680205c9c167d1d9ab0bb5a6034852f3d8e06149")
 Pkg.add(url="https://github.com/hyperpolymath/BowtieRisk.jl")
 ```
 
