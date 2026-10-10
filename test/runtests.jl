@@ -1,36 +1,47 @@
 # SPDX-License-Identifier: MPL-2.0
 # (MPL-2.0 preferred; MPL-2.0 required for Julia ecosystem)
 using Test
+using Aqua
 using BowtieRisk
+using Random
+
+# Deterministic test run: the property and simulation tests draw from rand().
+# A fixed seed makes a failure reproducible and removes run-to-run flakiness.
+Random.seed!(20261010)
+
+# Package-shape gate runs FIRST (rsr-criteria 5.2.5): a package with stale,
+# unbound or ambiguous definitions is rejected before any behaviour test runs.
+@testset "BowtieRisk — Aqua package shape" begin
+    Aqua.test_all(BowtieRisk)
+end
 
 @testset "BowtieRisk" begin
     hazard = Hazard(:Hazard, "Test hazard")
     top_event = TopEvent(:Top, "Top event")
 
-    threats = [
-        Threat(:T1, 0.2, "Threat 1"),
-        Threat(:T2, 0.1, "Threat 2"),
-    ]
+    threats = [Threat(:T1, 0.2, "Threat 1"), Threat(:T2, 0.1, "Threat 2")]
 
     preventive = [
         Barrier(:B1, 0.5, :preventive, "Barrier 1", 0.0, :none),
         Barrier(:B2, 0.25, :preventive, "Barrier 2", 0.0, :none),
     ]
 
-    consequences = [
-        Consequence(:C1, 0.8, "Consequence 1"),
-        Consequence(:C2, 0.4, "Consequence 2"),
-    ]
+    consequences =
+        [Consequence(:C1, 0.8, "Consequence 1"), Consequence(:C2, 0.4, "Consequence 2")]
 
-    mitigative = [
-        Barrier(:M1, 0.5, :mitigative, "Barrier 3", 0.1, :shared_power),
-    ]
+    mitigative = [Barrier(:M1, 0.5, :mitigative, "Barrier 3", 0.1, :shared_power)]
 
     model = BowtieModel(
         hazard,
         top_event,
-        [ThreatPath(threats[1], [preventive[1]], EscalationFactor[]), ThreatPath(threats[2], [preventive[2]], EscalationFactor[])],
-        [ConsequencePath(consequences[1], [mitigative[1]], EscalationFactor[]), ConsequencePath(consequences[2], Barrier[], EscalationFactor[])],
+        [
+            ThreatPath(threats[1], [preventive[1]], EscalationFactor[]),
+            ThreatPath(threats[2], [preventive[2]], EscalationFactor[]),
+        ],
+        [
+            ConsequencePath(consequences[1], [mitigative[1]], EscalationFactor[]),
+            ConsequencePath(consequences[2], Barrier[], EscalationFactor[]),
+        ],
         ProbabilityModel(:independent),
     )
 
@@ -75,7 +86,11 @@ using BowtieRisk
     summary_no_barriers = evaluate(model_no_barriers)
     @test summary_no_barriers.top_event_probability ≈ threats[1].probability
 
-    chain = EventChain([Event(:E1, 0.2, "Event 1"), Event(:E2, 0.5, "Event 2")], [mitigative[1]], EscalationFactor[])
+    chain = EventChain(
+        [Event(:E1, 0.2, "Event 1"), Event(:E2, 0.5, "Event 2")],
+        [mitigative[1]],
+        EscalationFactor[],
+    )
     @test chain_probability(chain) ≈ 0.2 * 0.5 * (1.0 - (0.5 * 0.9))
 
     dependent = BowtieModel(
@@ -96,22 +111,22 @@ using BowtieRisk
     write_model_json(path, model)
     model2 = read_model_json(path)
     @test model2.top_event.name == :Top
-    rm(path, force=true)
+    rm(path, force = true)
 
-    dists = Dict{Symbol, BarrierDistribution}(
+    dists = Dict{Symbol,BarrierDistribution}(
         :B1 => BarrierDistribution(:beta, (2.0, 5.0, 0.0)),
         :M1 => BarrierDistribution(:triangular, (0.2, 0.5, 0.9)),
     )
-    sim = simulate(model; samples=20, barrier_dists=dists)
+    sim = simulate(model; samples = 20, barrier_dists = dists)
     @test sim.top_event_mean >= 0.0
     @test haskey(sim.consequence_means, :C1)
 
     # Edge case: Monte Carlo with minimal samples
-    sim_min = simulate(model; samples=5, barrier_dists=dists)
+    sim_min = simulate(model; samples = 5, barrier_dists = dists)
     @test sim_min.top_event_mean >= 0.0
 
     # Edge case: Monte Carlo with many samples
-    sim_many = simulate(model; samples=100, barrier_dists=dists)
+    sim_many = simulate(model; samples = 100, barrier_dists = dists)
     @test sim_many.top_event_mean >= 0.0
     @test abs(sim_many.top_event_mean - summary.top_event_probability) < 0.5
 
@@ -119,16 +134,17 @@ using BowtieRisk
     # Future enhancement: add top_event_std field
 
     # Edge case: Simulation with no distributions (uses nominal values)
-    sim_nominal = simulate(model; samples=20, barrier_dists=Dict{Symbol, BarrierDistribution}())
+    sim_nominal =
+        simulate(model; samples = 20, barrier_dists = Dict{Symbol,BarrierDistribution}())
     @test sim_nominal.top_event_mean >= 0.0
 
-    tornado = sensitivity_tornado(model; delta=0.1)
+    tornado = sensitivity_tornado(model; delta = 0.1)
     @test !isempty(tornado)
 
     # Edge case: Sensitivity with different delta values
-    tornado_small = sensitivity_tornado(model; delta=0.05)
+    tornado_small = sensitivity_tornado(model; delta = 0.05)
     @test !isempty(tornado_small)
-    tornado_large = sensitivity_tornado(model; delta=0.2)
+    tornado_large = sensitivity_tornado(model; delta = 0.2)
     @test !isempty(tornado_large)
 
     # Test that tornado contains expected barrier names
@@ -142,14 +158,14 @@ using BowtieRisk
         @test impact1 >= impact_last
     end
     report_path = joinpath(@__DIR__, "report.md")
-    write_report_markdown(report_path, model; tornado_data=tornado)
+    write_report_markdown(report_path, model; tornado_data = tornado)
     @test isfile(report_path)
-    rm(report_path, force=true)
+    rm(report_path, force = true)
 
     csv_path = joinpath(@__DIR__, "tornado.csv")
     write_tornado_csv(csv_path, tornado)
     @test isfile(csv_path)
-    rm(csv_path, force=true)
+    rm(csv_path, force = true)
 
     templ = template_model(:process_safety)
     @test templ.top_event.name == :ContainmentLost
@@ -165,7 +181,7 @@ using BowtieRisk
     schema_path = joinpath(@__DIR__, "schema.json")
     write_schema_json(schema_path)
     @test isfile(schema_path)
-    rm(schema_path, force=true)
+    rm(schema_path, force = true)
 
     simple_path = joinpath(@__DIR__, "simple.csv")
     open(simple_path, "w") do io
@@ -173,7 +189,7 @@ using BowtieRisk
     end
     rows = load_simple_csv(simple_path)
     @test rows[1]["a"] == "1"
-    rm(simple_path, force=true)
+    rm(simple_path, force = true)
 
     # ====================================================================
     # Point-to-point tests (individual function coverage gaps)
@@ -220,16 +236,22 @@ using BowtieRisk
         barrier_degraded = Barrier(:valve, 0.9, :preventive, "Relief valve", 0.3, :none)
 
         threat = Threat(:leak, 0.1, "Leak")
-        cons = ConsequencePath(Consequence(:C, 0.5, "Consequence"), Barrier[], EscalationFactor[])
+        cons = ConsequencePath(
+            Consequence(:C, 0.5, "Consequence"),
+            Barrier[],
+            EscalationFactor[],
+        )
 
         model_fresh = BowtieModel(
-            Hazard(:H, "Hazard"), TopEvent(:T, "Top"),
+            Hazard(:H, "Hazard"),
+            TopEvent(:T, "Top"),
             [ThreatPath(threat, [barrier_fresh], EscalationFactor[])],
             [cons],
             ProbabilityModel(:independent),
         )
         model_degraded = BowtieModel(
-            Hazard(:H, "Hazard"), TopEvent(:T, "Top"),
+            Hazard(:H, "Hazard"),
+            TopEvent(:T, "Top"),
             [ThreatPath(threat, [barrier_degraded], EscalationFactor[])],
             [cons],
             ProbabilityModel(:independent),
@@ -253,16 +275,22 @@ using BowtieRisk
         b3 = Barrier(:alarm, 0.9, :preventive, "Alarm", 0.0, :none)
 
         threat = Threat(:fault, 0.1, "Equipment fault")
-        cons = ConsequencePath(Consequence(:C, 0.5, "Consequence"), Barrier[], EscalationFactor[])
+        cons = ConsequencePath(
+            Consequence(:C, 0.5, "Consequence"),
+            Barrier[],
+            EscalationFactor[],
+        )
 
         model_indep = BowtieModel(
-            Hazard(:H, "Hazard"), TopEvent(:T, "Top"),
+            Hazard(:H, "Hazard"),
+            TopEvent(:T, "Top"),
             [ThreatPath(threat, [b1, b2, b3], EscalationFactor[])],
             [cons],
             ProbabilityModel(:independent),
         )
         model_dep = BowtieModel(
-            Hazard(:H, "Hazard"), TopEvent(:T, "Top"),
+            Hazard(:H, "Hazard"),
+            TopEvent(:T, "Top"),
             [ThreatPath(threat, [b1, b2, b3], EscalationFactor[])],
             [cons],
             ProbabilityModel(:dependent),
@@ -288,8 +316,15 @@ using BowtieRisk
 
         # Unknown probability model mode should throw during evaluate
         bad_model = BowtieModel(
-            Hazard(:H, "Hazard"), TopEvent(:T, "Top"),
-            [ThreatPath(Threat(:X, 0.1, "Threat"), [Barrier(:B, 0.5, :preventive, "B", 0.0, :none)], EscalationFactor[])],
+            Hazard(:H, "Hazard"),
+            TopEvent(:T, "Top"),
+            [
+                ThreatPath(
+                    Threat(:X, 0.1, "Threat"),
+                    [Barrier(:B, 0.5, :preventive, "B", 0.0, :none)],
+                    EscalationFactor[],
+                ),
+            ],
             [ConsequencePath(Consequence(:C, 0.5, "Cons"), Barrier[], EscalationFactor[])],
             ProbabilityModel(:bogus),
         )
@@ -298,16 +333,31 @@ using BowtieRisk
         # Unknown distribution kind should throw during simulation
         bad_dist = Dict(:B => BarrierDistribution(:unknown_dist, (0.5, 0.5, 0.5)))
         simple_model = BowtieModel(
-            Hazard(:H, "Hazard"), TopEvent(:T, "Top"),
-            [ThreatPath(Threat(:X, 0.1, "Threat"), [Barrier(:B, 0.5, :preventive, "B", 0.0, :none)], EscalationFactor[])],
+            Hazard(:H, "Hazard"),
+            TopEvent(:T, "Top"),
+            [
+                ThreatPath(
+                    Threat(:X, 0.1, "Threat"),
+                    [Barrier(:B, 0.5, :preventive, "B", 0.0, :none)],
+                    EscalationFactor[],
+                ),
+            ],
             [ConsequencePath(Consequence(:C, 0.5, "Cons"), Barrier[], EscalationFactor[])],
             ProbabilityModel(:independent),
         )
-        @test_throws ErrorException simulate(simple_model; samples=5, barrier_dists=bad_dist)
+        @test_throws ErrorException simulate(
+            simple_model;
+            samples = 5,
+            barrier_dists = bad_dist,
+        )
 
         # Invalid triangular distribution parameters should throw
         bad_tri_dist = Dict(:B => BarrierDistribution(:triangular, (0.9, 0.1, 0.5)))
-        @test_throws ArgumentError simulate(simple_model; samples=5, barrier_dists=bad_tri_dist)
+        @test_throws ArgumentError simulate(
+            simple_model;
+            samples = 5,
+            barrier_dists = bad_tri_dist,
+        )
     end
 
     @testset "CSV edge cases" begin
@@ -318,14 +368,14 @@ using BowtieRisk
         open(empty_path, "w") do io
             write(io, "")
         end
-        @test load_simple_csv(empty_path) == Dict{String, String}[]
+        @test load_simple_csv(empty_path) == Dict{String,String}[]
 
         # Header only, no data rows
         header_only = joinpath(dir, "header.csv")
         open(header_only, "w") do io
             write(io, "name,value\n")
         end
-        @test load_simple_csv(header_only) == Dict{String, String}[]
+        @test load_simple_csv(header_only) == Dict{String,String}[]
 
         # Rows with fewer columns than header
         short_row = joinpath(dir, "short.csv")
@@ -356,13 +406,15 @@ using BowtieRisk
         cons = Consequence(:breach, 0.9, "Data breach")
 
         model_with_mit = BowtieModel(
-            Hazard(:H, "Hazard"), TopEvent(:T, "Top"),
+            Hazard(:H, "Hazard"),
+            TopEvent(:T, "Top"),
             [ThreatPath(threat, Barrier[], EscalationFactor[])],
             [ConsequencePath(cons, [barrier_mit], EscalationFactor[])],
             ProbabilityModel(:independent),
         )
         model_without_mit = BowtieModel(
-            Hazard(:H, "Hazard"), TopEvent(:T, "Top"),
+            Hazard(:H, "Hazard"),
+            TopEvent(:T, "Top"),
             [ThreatPath(threat, Barrier[], EscalationFactor[])],
             [ConsequencePath(cons, Barrier[], EscalationFactor[])],
             ProbabilityModel(:independent),
@@ -375,7 +427,8 @@ using BowtieRisk
         @test s_with.top_event_probability ≈ s_without.top_event_probability
 
         # Mitigative barrier should reduce consequence probability and risk
-        @test s_with.consequence_probabilities[:breach] < s_without.consequence_probabilities[:breach]
+        @test s_with.consequence_probabilities[:breach] <
+              s_without.consequence_probabilities[:breach]
         @test s_with.consequence_risks[:breach] < s_without.consequence_risks[:breach]
 
         # Without barrier: cons_prob = top_event_prob * 1.0 = 0.1
@@ -386,21 +439,44 @@ using BowtieRisk
 
     @testset "Large model stress test" begin
         # 50 barriers across 20 threat paths, 10 consequence paths
-        threat_paths = [ThreatPath(
-            Threat(Symbol("t$i"), 0.01 * i, "Threat $i"),
-            [Barrier(Symbol("b$(i)_$(j)"), 0.5 + 0.05j, :preventive, "B", 0.0, :none) for j in 1:5],
-            EscalationFactor[],
-        ) for i in 1:10]
-        consequence_paths = [ConsequencePath(
-            Consequence(Symbol("c$i"), 0.1 * i, "Consequence $i"),
-            [Barrier(Symbol("mb$(i)_$(j)"), 0.6 + 0.05j, :mitigative, "MB", 0.0, :none) for j in 1:3],
-            EscalationFactor[],
-        ) for i in 1:5]
+        threat_paths = [
+            ThreatPath(
+                Threat(Symbol("t$i"), 0.01 * i, "Threat $i"),
+                [
+                    Barrier(
+                        Symbol("b$(i)_$(j)"),
+                        0.5 + 0.05j,
+                        :preventive,
+                        "B",
+                        0.0,
+                        :none,
+                    ) for j = 1:5
+                ],
+                EscalationFactor[],
+            ) for i = 1:10
+        ]
+        consequence_paths = [
+            ConsequencePath(
+                Consequence(Symbol("c$i"), 0.1 * i, "Consequence $i"),
+                [
+                    Barrier(
+                        Symbol("mb$(i)_$(j)"),
+                        0.6 + 0.05j,
+                        :mitigative,
+                        "MB",
+                        0.0,
+                        :none,
+                    ) for j = 1:3
+                ],
+                EscalationFactor[],
+            ) for i = 1:5
+        ]
 
         big_model = BowtieModel(
             Hazard(:BigHazard, "Large scenario"),
             TopEvent(:BigEvent, "Large top event"),
-            threat_paths, consequence_paths,
+            threat_paths,
+            consequence_paths,
             ProbabilityModel(:independent),
         )
 
@@ -436,13 +512,29 @@ using BowtieRisk
                 Threat(:EquipmentFailure, 0.05, "Pump seal failure"),
                 [
                     Barrier(:PressureRelief, 0.8, :preventive, "Relief valve", 0.05, :none),
-                    Barrier(:Inspection, 0.6, :preventive, "Regular inspection", 0.1, :shared_maint),
+                    Barrier(
+                        :Inspection,
+                        0.6,
+                        :preventive,
+                        "Regular inspection",
+                        0.1,
+                        :shared_maint,
+                    ),
                 ],
                 [EscalationFactor(:TrainingGap, 0.3, "Poor operator training")],
             ),
             ThreatPath(
                 Threat(:ExternalIgnition, 0.02, "Hot work ignition"),
-                [Barrier(:HotWorkPermit, 0.7, :preventive, "Permit system", 0.0, :shared_maint)],
+                [
+                    Barrier(
+                        :HotWorkPermit,
+                        0.7,
+                        :preventive,
+                        "Permit system",
+                        0.0,
+                        :shared_maint,
+                    ),
+                ],
                 EscalationFactor[],
             ),
         ]
@@ -465,7 +557,13 @@ using BowtieRisk
         ]
 
         # 4. BUILD model with dependent mode
-        model_e2e = BowtieModel(hazard_e2e, top_event_e2e, threat_paths_e2e, consequence_paths_e2e, ProbabilityModel(:dependent))
+        model_e2e = BowtieModel(
+            hazard_e2e,
+            top_event_e2e,
+            threat_paths_e2e,
+            consequence_paths_e2e,
+            ProbabilityModel(:dependent),
+        )
 
         # 5. EVALUATE deterministically
         summary_e2e = evaluate(model_e2e)
@@ -484,22 +582,26 @@ using BowtieRisk
             :Inspection => BarrierDistribution(:triangular, (0.3, 0.6, 0.9)),
             :Evacuation => BarrierDistribution(:beta, (3.0, 2.0, 0.0)),
         )
-        sim_e2e = simulate(model_e2e; samples=2000, barrier_dists=barrier_dists_e2e)
+        sim_e2e = simulate(model_e2e; samples = 2000, barrier_dists = barrier_dists_e2e)
         @test sim_e2e.top_event_mean > 0
         @test length(sim_e2e.samples) == 2000
         @test abs(sim_e2e.top_event_mean - summary_e2e.top_event_probability) < 0.3
 
         # 7. SENSITIVITY analysis
-        tornado_e2e = sensitivity_tornado(model_e2e; delta=0.15)
+        tornado_e2e = sensitivity_tornado(model_e2e; delta = 0.15)
         @test length(tornado_e2e) > 0
         # Should be sorted by impact (descending)
         impacts_e2e = [abs(t[3] - t[2]) for t in tornado_e2e]
-        @test issorted(impacts_e2e, rev=true)
+        @test issorted(impacts_e2e, rev = true)
 
         # 8. EXPORT all formats
         dir_e2e = mktempdir()
         write_model_json(joinpath(dir_e2e, "model.json"), model_e2e)
-        write_report_markdown(joinpath(dir_e2e, "report.md"), model_e2e; tornado_data=tornado_e2e)
+        write_report_markdown(
+            joinpath(dir_e2e, "report.md"),
+            model_e2e;
+            tornado_data = tornado_e2e,
+        )
         write_tornado_csv(joinpath(dir_e2e, "tornado.csv"), tornado_e2e)
         write_schema_json(joinpath(dir_e2e, "schema.json"))
 
@@ -527,7 +629,7 @@ using BowtieRisk
         end
 
         # 11. REPORT content validation
-        report_e2e = report_markdown(model_e2e; tornado_data=tornado_e2e)
+        report_e2e = report_markdown(model_e2e; tornado_data = tornado_e2e)
         @test contains(report_e2e, "ChemicalFire")
         @test contains(report_e2e, "Sensitivity")
     end
@@ -538,26 +640,53 @@ using BowtieRisk
 
     @testset "Performance benchmarks" begin
         # Build a large model: 20 threat paths x 5 barriers, 10 consequence paths x 3 barriers
-        perf_threats = [ThreatPath(
-            Threat(Symbol("t$i"), 0.01 * i, "Threat $i"),
-            [Barrier(Symbol("b$(i)_$(j)"), 0.5 + 0.05j, :preventive, "B", 0.0, :none) for j in 1:5],
-            EscalationFactor[],
-        ) for i in 1:20]
-        perf_consequences = [ConsequencePath(
-            Consequence(Symbol("c$i"), 0.1 * i, "Consequence $i"),
-            [Barrier(Symbol("mb$(i)_$(j)"), 0.6 + 0.05j, :mitigative, "MB", 0.0, :none) for j in 1:3],
-            EscalationFactor[],
-        ) for i in 1:10]
+        perf_threats = [
+            ThreatPath(
+                Threat(Symbol("t$i"), 0.01 * i, "Threat $i"),
+                [
+                    Barrier(
+                        Symbol("b$(i)_$(j)"),
+                        0.5 + 0.05j,
+                        :preventive,
+                        "B",
+                        0.0,
+                        :none,
+                    ) for j = 1:5
+                ],
+                EscalationFactor[],
+            ) for i = 1:20
+        ]
+        perf_consequences = [
+            ConsequencePath(
+                Consequence(Symbol("c$i"), 0.1 * i, "Consequence $i"),
+                [
+                    Barrier(
+                        Symbol("mb$(i)_$(j)"),
+                        0.6 + 0.05j,
+                        :mitigative,
+                        "MB",
+                        0.0,
+                        :none,
+                    ) for j = 1:3
+                ],
+                EscalationFactor[],
+            ) for i = 1:10
+        ]
         big_model_perf = BowtieModel(
             Hazard(:BigHazard, "Large scenario"),
             TopEvent(:BigEvent, "Large top event"),
-            perf_threats, perf_consequences,
+            perf_threats,
+            perf_consequences,
             ProbabilityModel(:independent),
         )
 
         # Warm up JIT
         evaluate(big_model_perf)
-        simulate(big_model_perf; samples=10, barrier_dists=Dict{Symbol, BarrierDistribution}())
+        simulate(
+            big_model_perf;
+            samples = 10,
+            barrier_dists = Dict{Symbol,BarrierDistribution}(),
+        )
         sensitivity_tornado(big_model_perf)
 
         # Evaluate should complete quickly
@@ -565,7 +694,11 @@ using BowtieRisk
         @test t_eval < 1.0
 
         # Simulate should complete in reasonable time
-        t_sim = @elapsed simulate(big_model_perf; samples=5000, barrier_dists=Dict{Symbol, BarrierDistribution}())
+        t_sim = @elapsed simulate(
+            big_model_perf;
+            samples = 5000,
+            barrier_dists = Dict{Symbol,BarrierDistribution}(),
+        )
         @test t_sim < 30.0
 
         # Sensitivity should complete

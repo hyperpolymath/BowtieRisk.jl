@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: MPL-2.0
+# BowtieRisk.jl — docs build & deploy (julia-library archetype, criterion 5.2.6)
+#
+# Builds the Documenter site from docs/ and deploys it to gh-pages with
+# GITHUB_TOKEN (deploydocs is called from docs/make.jl).
+#
+# Deviation from the template: AcceleratorGate.jl is developed from its pinned
+# git revision before the package is developed, because it is not in the
+# General registry and resolution would otherwise fail.
+name: Docs
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    name: Build and deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # deploydocs pushes the built site to the gh-pages branch.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Layout gate — fail loud while docs/ is absent
+        run: |
+          if [ ! -f docs/Project.toml ] || [ ! -f docs/make.jl ] || [ ! -d docs/src ]; then
+            echo "::error::docs-site declared but no Documenter build: docs/Project.toml, docs/make.jl and docs/src/ are required."
+            exit 1
+          fi
+      - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32 # v3.0.2
+        with:
+          version: "1"
+      - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
+      - name: Instantiate the docs environment
+        run: |
+          julia --project=docs -e 'using Pkg
+            Pkg.add(url="https://github.com/hyperpolymath/AcceleratorGate.jl.git", rev="680205c9c167d1d9ab0bb5a6034852f3d8e06149")
+            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.instantiate()'
+      - name: Build and deploy (Documenter deploydocs)
+        run: julia --project=docs docs/make.jl
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

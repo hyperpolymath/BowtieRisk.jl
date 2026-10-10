@@ -158,7 +158,7 @@ Kinds: :fixed, :beta, :triangular.
 """
 struct BarrierDistribution
     kind::Symbol
-    params::NTuple{3, Float64}
+    params::NTuple{3,Float64}
 end
 
 """
@@ -166,7 +166,7 @@ Monte Carlo simulation result.
 """
 struct SimulationResult
     top_event_mean::Float64
-    consequence_means::Dict{Symbol, Float64}
+    consequence_means::Dict{Symbol,Float64}
     samples::Vector{Float64}
 end
 
@@ -174,15 +174,20 @@ end
 Compute chain probability with barrier reduction (independent assumptions).
 """
 function chain_probability(chain::EventChain)
-    base = prod((e.probability for e in chain.events); init=1.0)
-    reduction = _combined_barrier_reduction(chain.barriers, chain.escalation_factors, ProbabilityModel(:independent))
+    base = prod((e.probability for e in chain.events); init = 1.0)
+    reduction = _combined_barrier_reduction(
+        chain.barriers,
+        chain.escalation_factors,
+        ProbabilityModel(:independent),
+    )
     base * reduction
 end
 
 function _effective_barrier(barrier::Barrier, factors::Vector{EscalationFactor})
     base = clamp(barrier.effectiveness, 0.0, 1.0)
     degraded = base * (1.0 - clamp(barrier.degradation, 0.0, 1.0))
-    factor_reduction = prod((1.0 - clamp(f.multiplier, 0.0, 1.0) for f in factors); init=1.0)
+    factor_reduction =
+        prod((1.0 - clamp(f.multiplier, 0.0, 1.0) for f in factors); init = 1.0)
     clamp(degraded * factor_reduction, 0.0, 1.0)
 end
 
@@ -196,10 +201,12 @@ function _sample_distribution(dist::BarrierDistribution)
         low, mode, high = dist.params
 
         if !(low <= mode <= high) || low >= high
-            throw(ArgumentError(
-                "Triangular distribution requires low ≤ mode ≤ high and low < high. " *
-                "Got low=$low, mode=$mode, high=$high"
-            ))
+            throw(
+                ArgumentError(
+                    "Triangular distribution requires low ≤ mode ≤ high and low < high. " *
+                    "Got low=$low, mode=$mode, high=$high",
+                ),
+            )
         end
 
         u = rand()
@@ -214,30 +221,59 @@ function _sample_distribution(dist::BarrierDistribution)
     end
 end
 
-function _apply_distributions(model::BowtieModel, dists::Dict{Symbol, BarrierDistribution})
+function _apply_distributions(model::BowtieModel, dists::Dict{Symbol,BarrierDistribution})
     function sample_barrier(b::Barrier)
         if haskey(dists, b.name)
             dist = dists[b.name]
             sampled = _sample_distribution(dist)
-            return Barrier(b.name, sampled, b.kind, b.description, b.degradation, b.dependency)
+            return Barrier(
+                b.name,
+                sampled,
+                b.kind,
+                b.description,
+                b.degradation,
+                b.dependency,
+            )
         end
         b
     end
 
     threats = ThreatPath[]
     for p in model.threat_paths
-        push!(threats, ThreatPath(p.threat, [sample_barrier(b) for b in p.barriers], p.escalation_factors))
+        push!(
+            threats,
+            ThreatPath(
+                p.threat,
+                [sample_barrier(b) for b in p.barriers],
+                p.escalation_factors,
+            ),
+        )
     end
 
     cons = ConsequencePath[]
     for p in model.consequence_paths
-        push!(cons, ConsequencePath(p.consequence, [sample_barrier(b) for b in p.barriers], p.escalation_factors))
+        push!(
+            cons,
+            ConsequencePath(
+                p.consequence,
+                [sample_barrier(b) for b in p.barriers],
+                p.escalation_factors,
+            ),
+        )
     end
 
     BowtieModel(model.hazard, model.top_event, threats, cons, model.probability_model)
 end
 
-function _combined_barrier_reduction(barriers::Vector{Barrier}, factors::Vector{EscalationFactor}, model::ProbabilityModel)
+_check_mode(model::ProbabilityModel) =
+    model.mode in (:independent, :dependent) ? nothing :
+    error("unknown probability model mode: $(model.mode)")
+
+function _combined_barrier_reduction(
+    barriers::Vector{Barrier},
+    factors::Vector{EscalationFactor},
+    model::ProbabilityModel,
+)
     if isempty(barriers)
         return 1.0
     end
@@ -245,21 +281,26 @@ function _combined_barrier_reduction(barriers::Vector{Barrier}, factors::Vector{
     effective = [_effective_barrier(b, factors) for b in barriers]
 
     if model.mode == :independent
-        return prod((1.0 - e for e in effective); init=1.0)
+        return prod((1.0 - e for e in effective); init = 1.0)
     elseif model.mode == :dependent
-        groups = Dict{Symbol, Vector{Float64}}()
+        groups = Dict{Symbol,Vector{Float64}}()
         for (i, b) in enumerate(barriers)
             dep = b.dependency == :none ? Symbol("barrier_$i") : b.dependency
             push!(get!(groups, dep, Float64[]), effective[i])
         end
         combined = [minimum(vals) for vals in values(groups)]
-        return prod((1.0 - e for e in combined); init=1.0)
+        return prod((1.0 - e for e in combined); init = 1.0)
     else
         error("unknown probability model mode: $(model.mode)")
     end
 end
 
-function _residual_probability(base::Float64, barriers::Vector{Barrier}, factors::Vector{EscalationFactor}, model::ProbabilityModel)
+function _residual_probability(
+    base::Float64,
+    barriers::Vector{Barrier},
+    factors::Vector{EscalationFactor},
+    model::ProbabilityModel,
+)
     reduction = _combined_barrier_reduction(barriers, factors, model)
     base * reduction
 end
@@ -269,51 +310,72 @@ Evaluate a bowtie model and return a summary struct.
 """
 struct BowtieSummary
     top_event_probability::Float64
-    threat_residuals::Dict{Symbol, Float64}
-    consequence_probabilities::Dict{Symbol, Float64}
-    consequence_risks::Dict{Symbol, Float64}
+    threat_residuals::Dict{Symbol,Float64}
+    consequence_probabilities::Dict{Symbol,Float64}
+    consequence_risks::Dict{Symbol,Float64}
 end
 
 """
 Compute residual probabilities, top event probability, and consequence risk.
 """
 function evaluate(model::BowtieModel)
-    threat_residuals = Dict{Symbol, Float64}()
+    _check_mode(model.probability_model)
+    threat_residuals = Dict{Symbol,Float64}()
     residual_values = Float64[]
 
     for path in model.threat_paths
         base = clamp(path.threat.probability, 0.0, 1.0)
-        residual = _residual_probability(base, path.barriers, path.escalation_factors, model.probability_model)
+        residual = _residual_probability(
+            base,
+            path.barriers,
+            path.escalation_factors,
+            model.probability_model,
+        )
         threat_residuals[path.threat.name] = residual
         push!(residual_values, residual)
     end
 
-    top_event_probability = isempty(residual_values) ? 0.0 : 1.0 - prod(1.0 .- residual_values)
+    top_event_probability =
+        isempty(residual_values) ? 0.0 : 1.0 - prod(1.0 .- residual_values)
 
-    consequence_probabilities = Dict{Symbol, Float64}()
-    consequence_risks = Dict{Symbol, Float64}()
+    consequence_probabilities = Dict{Symbol,Float64}()
+    consequence_risks = Dict{Symbol,Float64}()
 
     for path in model.consequence_paths
-        residual = _residual_probability(top_event_probability, path.barriers, path.escalation_factors, model.probability_model)
+        residual = _residual_probability(
+            top_event_probability,
+            path.barriers,
+            path.escalation_factors,
+            model.probability_model,
+        )
         consequence_probabilities[path.consequence.name] = residual
         severity = clamp(path.consequence.severity, 0.0, 1.0)
         consequence_risks[path.consequence.name] = residual * severity
     end
 
-    BowtieSummary(top_event_probability, threat_residuals, consequence_probabilities, consequence_risks)
+    BowtieSummary(
+        top_event_probability,
+        threat_residuals,
+        consequence_probabilities,
+        consequence_risks,
+    )
 end
 
 """
 Run a Monte Carlo simulation with barrier effectiveness distributions.
 """
-function simulate(model::BowtieModel; samples::Int=1000, barrier_dists::Dict{Symbol, BarrierDistribution}=Dict{Symbol, BarrierDistribution}())
+function simulate(
+    model::BowtieModel;
+    samples::Int = 1000,
+    barrier_dists::Dict{Symbol,BarrierDistribution} = Dict{Symbol,BarrierDistribution}(),
+)
     top_vals = Float64[]
-    cons_vals = Dict{Symbol, Vector{Float64}}()
+    cons_vals = Dict{Symbol,Vector{Float64}}()
     for path in model.consequence_paths
         cons_vals[path.consequence.name] = Float64[]
     end
 
-    for _ in 1:samples
+    for _ = 1:samples
         sampled = _apply_distributions(model, barrier_dists)
         summary = evaluate(sampled)
         push!(top_vals, summary.top_event_probability)
@@ -322,7 +384,7 @@ function simulate(model::BowtieModel; samples::Int=1000, barrier_dists::Dict{Sym
         end
     end
 
-    cons_means = Dict{Symbol, Float64}()
+    cons_means = Dict{Symbol,Float64}()
     for (k, vals) in cons_vals
         cons_means[k] = isempty(vals) ? 0.0 : sum(vals) / length(vals)
     end
@@ -333,27 +395,60 @@ end
 """
 Sensitivity data for tornado charts (low/high values per barrier).
 """
-function sensitivity_tornado(model::BowtieModel; delta::Float64=0.1)
+function sensitivity_tornado(model::BowtieModel; delta::Float64 = 0.1)
     base = evaluate(model).top_event_probability
-    results = Vector{Tuple{Symbol, Float64, Float64}}()
+    results = Vector{Tuple{Symbol,Float64,Float64}}()
 
     for (pidx, path) in enumerate(model.threat_paths)
         for (bidx, barrier) in enumerate(path.barriers)
             lower = clamp(barrier.effectiveness - delta, 0.0, 1.0)
             upper = clamp(barrier.effectiveness + delta, 0.0, 1.0)
 
-            low_barrier = Barrier(barrier.name, lower, barrier.kind, barrier.description, barrier.degradation, barrier.dependency)
-            high_barrier = Barrier(barrier.name, upper, barrier.kind, barrier.description, barrier.degradation, barrier.dependency)
+            low_barrier = Barrier(
+                barrier.name,
+                lower,
+                barrier.kind,
+                barrier.description,
+                barrier.degradation,
+                barrier.dependency,
+            )
+            high_barrier = Barrier(
+                barrier.name,
+                upper,
+                barrier.kind,
+                barrier.description,
+                barrier.degradation,
+                barrier.dependency,
+            )
 
             low_paths = deepcopy(model.threat_paths)
             high_paths = deepcopy(model.threat_paths)
             low_paths[pidx].barriers[bidx] = low_barrier
             high_paths[pidx].barriers[bidx] = high_barrier
 
-            low_model = BowtieModel(model.hazard, model.top_event, low_paths, model.consequence_paths, model.probability_model)
-            high_model = BowtieModel(model.hazard, model.top_event, high_paths, model.consequence_paths, model.probability_model)
+            low_model = BowtieModel(
+                model.hazard,
+                model.top_event,
+                low_paths,
+                model.consequence_paths,
+                model.probability_model,
+            )
+            high_model = BowtieModel(
+                model.hazard,
+                model.top_event,
+                high_paths,
+                model.consequence_paths,
+                model.probability_model,
+            )
 
-            push!(results, (barrier.name, evaluate(low_model).top_event_probability, evaluate(high_model).top_event_probability))
+            push!(
+                results,
+                (
+                    barrier.name,
+                    evaluate(low_model).top_event_probability,
+                    evaluate(high_model).top_event_probability,
+                ),
+            )
         end
     end
 
@@ -364,8 +459,22 @@ function sensitivity_tornado(model::BowtieModel; delta::Float64=0.1)
             lower = clamp(barrier.effectiveness - delta, 0.0, 1.0)
             upper = clamp(barrier.effectiveness + delta, 0.0, 1.0)
 
-            low_barrier = Barrier(barrier.name, lower, barrier.kind, barrier.description, barrier.degradation, barrier.dependency)
-            high_barrier = Barrier(barrier.name, upper, barrier.kind, barrier.description, barrier.degradation, barrier.dependency)
+            low_barrier = Barrier(
+                barrier.name,
+                lower,
+                barrier.kind,
+                barrier.description,
+                barrier.degradation,
+                barrier.dependency,
+            )
+            high_barrier = Barrier(
+                barrier.name,
+                upper,
+                barrier.kind,
+                barrier.description,
+                barrier.degradation,
+                barrier.dependency,
+            )
 
             low_cons = deepcopy(model.consequence_paths)
             high_cons = deepcopy(model.consequence_paths)
@@ -375,11 +484,25 @@ function sensitivity_tornado(model::BowtieModel; delta::Float64=0.1)
             high_barriers = copy(path.barriers)
             high_barriers[bidx] = high_barrier
 
-            low_cons[pidx] = ConsequencePath(path.consequence, low_barriers, path.escalation_factors)
-            high_cons[pidx] = ConsequencePath(path.consequence, high_barriers, path.escalation_factors)
+            low_cons[pidx] =
+                ConsequencePath(path.consequence, low_barriers, path.escalation_factors)
+            high_cons[pidx] =
+                ConsequencePath(path.consequence, high_barriers, path.escalation_factors)
 
-            low_model = BowtieModel(model.hazard, model.top_event, model.threat_paths, low_cons, model.probability_model)
-            high_model = BowtieModel(model.hazard, model.top_event, model.threat_paths, high_cons, model.probability_model)
+            low_model = BowtieModel(
+                model.hazard,
+                model.top_event,
+                model.threat_paths,
+                low_cons,
+                model.probability_model,
+            )
+            high_model = BowtieModel(
+                model.hazard,
+                model.top_event,
+                model.threat_paths,
+                high_cons,
+                model.probability_model,
+            )
 
             # For consequence barriers, measure impact on total risk (sum of consequence risks)
             low_risk = sum(values(evaluate(low_model).consequence_risks))
@@ -388,20 +511,26 @@ function sensitivity_tornado(model::BowtieModel; delta::Float64=0.1)
         end
     end
 
-    sort!(results, by=x -> abs(x[2] - x[3]), rev=true)
+    sort!(results, by = x -> abs(x[2] - x[3]), rev = true)
     results
 end
 
 """
 Markdown report for a model and optional tornado data.
 """
-function report_markdown(model::BowtieModel; tornado_data::Vector{Tuple{Symbol, Float64, Float64}}=Tuple{Symbol, Float64, Float64}[])
+function report_markdown(
+    model::BowtieModel;
+    tornado_data::Vector{Tuple{Symbol,Float64,Float64}} = Tuple{Symbol,Float64,Float64}[],
+)
     summary = evaluate(model)
     lines = String[]
     push!(lines, "# Bowtie Risk Report")
     push!(lines, "- Hazard: $(model.hazard.name)")
     push!(lines, "- Top event: $(model.top_event.name)")
-    push!(lines, "- Top event probability: $(round(summary.top_event_probability, digits=4))")
+    push!(
+        lines,
+        "- Top event probability: $(round(summary.top_event_probability, digits=4))",
+    )
     push!(lines, "")
     push!(lines, "## Consequences")
     for (k, v) in summary.consequence_probabilities
@@ -412,7 +541,10 @@ function report_markdown(model::BowtieModel; tornado_data::Vector{Tuple{Symbol, 
         push!(lines, "")
         push!(lines, "## Sensitivity (Tornado)")
         for (name, low, high) in tornado_data
-            push!(lines, "- $(name): low=$(round(low, digits=4)) high=$(round(high, digits=4))")
+            push!(
+                lines,
+                "- $(name): low=$(round(low, digits=4)) high=$(round(high, digits=4))",
+            )
         end
     end
     join(lines, "\n")
@@ -421,16 +553,23 @@ end
 """
 Write Markdown report to disk.
 """
-function write_report_markdown(path::AbstractString, model::BowtieModel; tornado_data::Vector{Tuple{Symbol, Float64, Float64}}=Tuple{Symbol, Float64, Float64}[])
+function write_report_markdown(
+    path::AbstractString,
+    model::BowtieModel;
+    tornado_data::Vector{Tuple{Symbol,Float64,Float64}} = Tuple{Symbol,Float64,Float64}[],
+)
     open(path, "w") do io
-        write(io, report_markdown(model; tornado_data=tornado_data))
+        write(io, report_markdown(model; tornado_data = tornado_data))
     end
     nothing
 end
 
 """
 Write tornado data to CSV.\n"""
-function write_tornado_csv(path::AbstractString, data::Vector{Tuple{Symbol, Float64, Float64}})
+function write_tornado_csv(
+    path::AbstractString,
+    data::Vector{Tuple{Symbol,Float64,Float64}},
+)
     lines = ["barrier,low,high"]
     for (name, low, high) in data
         push!(lines, "$(name),$(low),$(high)")
@@ -454,28 +593,60 @@ function template_model(name::Symbol)
         hazard = Hazard(:LossOfContainment, "Loss of containment from vessel")
         top = TopEvent(:ContainmentLost, "Containment is lost")
         threats = [
-            ThreatPath(Threat(:Overpressure, 0.02, "Pressure exceeds design"),
-                       [Barrier(:ReliefValve, 0.7, :preventive, "Relieves pressure", 0.1, :none)],
-                       EscalationFactor[]),
+            ThreatPath(
+                Threat(:Overpressure, 0.02, "Pressure exceeds design"),
+                [Barrier(:ReliefValve, 0.7, :preventive, "Relieves pressure", 0.1, :none)],
+                EscalationFactor[],
+            ),
         ]
         consequences = [
-            ConsequencePath(Consequence(:Release, 0.6, "Release to atmosphere"),
-                            [Barrier(:GasDetection, 0.6, :mitigative, "Detects release", 0.0, :shared_power)],
-                            EscalationFactor[]),
+            ConsequencePath(
+                Consequence(:Release, 0.6, "Release to atmosphere"),
+                [
+                    Barrier(
+                        :GasDetection,
+                        0.6,
+                        :mitigative,
+                        "Detects release",
+                        0.0,
+                        :shared_power,
+                    ),
+                ],
+                EscalationFactor[],
+            ),
         ]
-        return BowtieModel(hazard, top, threats, consequences, ProbabilityModel(:independent))
+        return BowtieModel(
+            hazard,
+            top,
+            threats,
+            consequences,
+            ProbabilityModel(:independent),
+        )
     elseif name == :cyber_incident
         hazard = Hazard(:UnauthorizedAccess, "Unauthorized access to systems")
         top = TopEvent(:AccessGained, "Credentials compromised")
         threats = [
-            ThreatPath(Threat(:Phishing, 0.08, "Credential phishing"),
-                       [Barrier(:MFA, 0.8, :preventive, "Multi-factor auth", 0.0, :shared_identity)],
-                       EscalationFactor[]),
+            ThreatPath(
+                Threat(:Phishing, 0.08, "Credential phishing"),
+                [
+                    Barrier(
+                        :MFA,
+                        0.8,
+                        :preventive,
+                        "Multi-factor auth",
+                        0.0,
+                        :shared_identity,
+                    ),
+                ],
+                EscalationFactor[],
+            ),
         ]
         consequences = [
-            ConsequencePath(Consequence(:DataLeak, 0.9, "Sensitive data exposure"),
-                            [Barrier(:DLP, 0.5, :mitigative, "Data loss prevention", 0.0, :none)],
-                            EscalationFactor[]),
+            ConsequencePath(
+                Consequence(:DataLeak, 0.9, "Sensitive data exposure"),
+                [Barrier(:DLP, 0.5, :mitigative, "Data loss prevention", 0.0, :none)],
+                EscalationFactor[],
+            ),
         ]
         return BowtieModel(hazard, top, threats, consequences, ProbabilityModel(:dependent))
     else
@@ -491,14 +662,16 @@ function model_schema()
         "type" => "object",
         "properties" => Dict(
             "name" => Dict("type" => "string"),
-            "effectiveness" => Dict("type" => "number", "minimum" => 0.0, "maximum" => 1.0),
+            "effectiveness" =>
+                Dict("type" => "number", "minimum" => 0.0, "maximum" => 1.0),
             "kind" => Dict("type" => "string", "enum" => ["preventive", "mitigative"]),
             "description" => Dict("type" => "string"),
-            "degradation" => Dict("type" => "number", "minimum" => 0.0, "maximum" => 1.0),
-            "dependency" => Dict("type" => "string")
+            "degradation" =>
+                Dict("type" => "number", "minimum" => 0.0, "maximum" => 1.0),
+            "dependency" => Dict("type" => "string"),
         ),
         "required" => ["name", "effectiveness", "kind"],
-        "additionalProperties" => false
+        "additionalProperties" => false,
     )
 
     Dict(
@@ -510,19 +683,19 @@ function model_schema()
                 "type" => "object",
                 "properties" => Dict(
                     "name" => Dict("type" => "string"),
-                    "description" => Dict("type" => "string")
+                    "description" => Dict("type" => "string"),
                 ),
                 "required" => ["name", "description"],
-                "additionalProperties" => false
+                "additionalProperties" => false,
             ),
             "top_event" => Dict(
                 "type" => "object",
                 "properties" => Dict(
                     "name" => Dict("type" => "string"),
-                    "description" => Dict("type" => "string")
+                    "description" => Dict("type" => "string"),
                 ),
                 "required" => ["name", "description"],
-                "additionalProperties" => false
+                "additionalProperties" => false,
             ),
             "threat_paths" => Dict(
                 "type" => "array",
@@ -533,18 +706,22 @@ function model_schema()
                             "type" => "object",
                             "properties" => Dict(
                                 "name" => Dict("type" => "string"),
-                                "probability" => Dict("type" => "number", "minimum" => 0.0, "maximum" => 1.0),
-                                "description" => Dict("type" => "string")
+                                "probability" => Dict(
+                                    "type" => "number",
+                                    "minimum" => 0.0,
+                                    "maximum" => 1.0,
+                                ),
+                                "description" => Dict("type" => "string"),
                             ),
                             "required" => ["name", "probability"],
-                            "additionalProperties" => false
+                            "additionalProperties" => false,
                         ),
                         "barriers" => Dict("type" => "array", "items" => barrier_schema),
-                        "escalation_factors" => Dict("type" => "array")
+                        "escalation_factors" => Dict("type" => "array"),
                     ),
                     "required" => ["threat", "barriers"],
-                    "additionalProperties" => false
-                )
+                    "additionalProperties" => false,
+                ),
             ),
             "consequence_paths" => Dict(
                 "type" => "array",
@@ -555,30 +732,43 @@ function model_schema()
                             "type" => "object",
                             "properties" => Dict(
                                 "name" => Dict("type" => "string"),
-                                "severity" => Dict("type" => "number", "minimum" => 0.0, "maximum" => 1.0),
-                                "description" => Dict("type" => "string")
+                                "severity" => Dict(
+                                    "type" => "number",
+                                    "minimum" => 0.0,
+                                    "maximum" => 1.0,
+                                ),
+                                "description" => Dict("type" => "string"),
                             ),
                             "required" => ["name", "severity"],
-                            "additionalProperties" => false
+                            "additionalProperties" => false,
                         ),
                         "barriers" => Dict("type" => "array", "items" => barrier_schema),
-                        "escalation_factors" => Dict("type" => "array")
+                        "escalation_factors" => Dict("type" => "array"),
                     ),
                     "required" => ["consequence", "barriers"],
-                    "additionalProperties" => false
-                )
+                    "additionalProperties" => false,
+                ),
             ),
             "probability_model" => Dict(
                 "type" => "object",
                 "properties" => Dict(
-                    "mode" => Dict("type" => "string", "enum" => ["independent", "dependent"])
+                    "mode" => Dict(
+                        "type" => "string",
+                        "enum" => ["independent", "dependent"],
+                    ),
                 ),
                 "required" => ["mode"],
-                "additionalProperties" => false
+                "additionalProperties" => false,
             ),
         ),
-        "required" => ["hazard", "top_event", "threat_paths", "consequence_paths", "probability_model"],
-        "additionalProperties" => false
+        "required" => [
+            "hazard",
+            "top_event",
+            "threat_paths",
+            "consequence_paths",
+            "probability_model",
+        ],
+        "additionalProperties" => false,
     )
 end
 
@@ -597,13 +787,13 @@ Load a simple CSV file into a vector of dictionaries.\nFormat: header row with c
 """
 function load_simple_csv(path::AbstractString)
     lines = readlines(path)
-    isempty(lines) && return Dict{String, String}[]
+    isempty(lines) && return Dict{String,String}[]
     header = split(strip(lines[1]), ',')
-    rows = Dict{String, String}[]
+    rows = Dict{String,String}[]
     for line in lines[2:end]
         strip(line) == "" && continue
         values = split(strip(line), ',')
-        row = Dict{String, String}()
+        row = Dict{String,String}()
         for (i, key) in enumerate(header)
             row[key] = i <= length(values) ? values[i] : ""
         end
@@ -701,14 +891,22 @@ end
 Write a bowtie model to JSON.
 """
 function write_model_json(path::AbstractString, model::BowtieModel)
-    obj = Dict{String, Any}()
-    obj["hazard"] = Dict("name" => String(model.hazard.name), "description" => model.hazard.description)
-    obj["top_event"] = Dict("name" => String(model.top_event.name), "description" => model.top_event.description)
+    obj = Dict{String,Any}()
+    obj["hazard"] =
+        Dict("name" => String(model.hazard.name), "description" => model.hazard.description)
+    obj["top_event"] = Dict(
+        "name" => String(model.top_event.name),
+        "description" => model.top_event.description,
+    )
     obj["probability_model"] = Dict("mode" => String(model.probability_model.mode))
 
     obj["threat_paths"] = [
         Dict(
-            "threat" => Dict("name" => String(p.threat.name), "probability" => p.threat.probability, "description" => p.threat.description),
+            "threat" => Dict(
+                "name" => String(p.threat.name),
+                "probability" => p.threat.probability,
+                "description" => p.threat.description,
+            ),
             "barriers" => [
                 Dict(
                     "name" => String(b.name),
@@ -720,14 +918,22 @@ function write_model_json(path::AbstractString, model::BowtieModel)
                 ) for b in p.barriers
             ],
             "escalation_factors" => [
-                Dict("name" => String(f.name), "multiplier" => f.multiplier, "description" => f.description) for f in p.escalation_factors
+                Dict(
+                    "name" => String(f.name),
+                    "multiplier" => f.multiplier,
+                    "description" => f.description,
+                ) for f in p.escalation_factors
             ],
         ) for p in model.threat_paths
     ]
 
     obj["consequence_paths"] = [
         Dict(
-            "consequence" => Dict("name" => String(p.consequence.name), "severity" => p.consequence.severity, "description" => p.consequence.description),
+            "consequence" => Dict(
+                "name" => String(p.consequence.name),
+                "severity" => p.consequence.severity,
+                "description" => p.consequence.description,
+            ),
             "barriers" => [
                 Dict(
                     "name" => String(b.name),
@@ -739,7 +945,11 @@ function write_model_json(path::AbstractString, model::BowtieModel)
                 ) for b in p.barriers
             ],
             "escalation_factors" => [
-                Dict("name" => String(f.name), "multiplier" => f.multiplier, "description" => f.description) for f in p.escalation_factors
+                Dict(
+                    "name" => String(f.name),
+                    "multiplier" => f.multiplier,
+                    "description" => f.description,
+                ) for f in p.escalation_factors
             ],
         ) for p in model.consequence_paths
     ]
@@ -750,55 +960,104 @@ function write_model_json(path::AbstractString, model::BowtieModel)
     nothing
 end
 
+# Typed accessors for JSON3 values. JSON3 yields a Union of JSON types, so each
+# value is checked once here; a malformed model file raises ArgumentError rather
+# than a MethodError deep inside the constructors.
+_json_obj(x)::JSON3.Object =
+    x isa JSON3.Object ? x :
+    throw(ArgumentError("model JSON: expected an object, got $(typeof(x))"))
+_json_arr(x)::AbstractVector =
+    x isa AbstractVector ? x :
+    throw(ArgumentError("model JSON: expected an array, got $(typeof(x))"))
+_json_str(x)::String =
+    x isa AbstractString ? String(x) :
+    throw(ArgumentError("model JSON: expected a string, got $(typeof(x))"))
+_json_num(x)::Float64 =
+    x isa Real ? Float64(x) :
+    throw(ArgumentError("model JSON: expected a number, got $(typeof(x))"))
+_json_sym(x)::Symbol = Symbol(_json_str(x))
+_json_field(o, key::String) = _json_req(get(_json_obj(o), Symbol(key), nothing), key)
+_json_req(x, key::String) =
+    x === nothing ? throw(ArgumentError("model JSON: missing or null field \"$key\"")) : x
+
+function _read_barrier(b)
+    Barrier(
+        _json_sym(_json_field(b, "name")),
+        _json_num(_json_field(b, "effectiveness")),
+        _json_sym(_json_field(b, "kind")),
+        _json_str(_json_field(b, "description")),
+        _json_num(_json_field(b, "degradation")),
+        _json_sym(_json_field(b, "dependency")),
+    )
+end
+
+function _read_factors(list)
+    [
+        EscalationFactor(
+            _json_sym(_json_field(f, "name")),
+            _json_num(_json_field(f, "multiplier")),
+            _json_str(_json_field(f, "description")),
+        ) for f in _json_arr(list)
+    ]
+end
+
+function _read_barriers(list)
+    Barrier[_read_barrier(b) for b in _json_arr(list)]
+end
+
 """
 Read a bowtie model from JSON produced by write_model_json.
 """
 function read_model_json(path::AbstractString)
-    obj = JSON3.read(read(path, String))
-    hazard = Hazard(Symbol(String(obj["hazard"]["name"])), String(obj["hazard"]["description"]))
-    top_event = TopEvent(Symbol(String(obj["top_event"]["name"])), String(obj["top_event"]["description"]))
-    model = ProbabilityModel(Symbol(String(obj["probability_model"]["mode"])))
+    obj = _json_obj(JSON3.read(read(path, String)))
+    hz = _json_obj(_json_field(obj, "hazard"))
+    te = _json_obj(_json_field(obj, "top_event"))
+    hazard = Hazard(
+        _json_sym(_json_field(hz, "name")),
+        _json_str(_json_field(hz, "description")),
+    )
+    top_event = TopEvent(
+        _json_sym(_json_field(te, "name")),
+        _json_str(_json_field(te, "description")),
+    )
+    model = ProbabilityModel(
+        _json_sym(_json_field(_json_obj(_json_field(obj, "probability_model")), "mode")),
+    )
 
     threat_paths = ThreatPath[]
-    for p in obj["threat_paths"]
-        threat = Threat(Symbol(String(p["threat"]["name"])), Float64(p["threat"]["probability"]), String(p["threat"]["description"]))
-        barriers = Barrier[]
-        for b in p["barriers"]
-            push!(barriers, Barrier(
-                Symbol(String(b["name"])),
-                Float64(b["effectiveness"]),
-                Symbol(String(b["kind"])),
-                String(b["description"]),
-                Float64(b["degradation"]),
-                Symbol(String(b["dependency"])),
-            ))
-        end
-        factors = EscalationFactor[]
-        for f in p["escalation_factors"]
-            push!(factors, EscalationFactor(Symbol(String(f["name"])), Float64(f["multiplier"]), String(f["description"])))
-        end
-        push!(threat_paths, ThreatPath(threat, barriers, factors))
+    for p in _json_arr(_json_field(obj, "threat_paths"))
+        t = _json_obj(_json_field(p, "threat"))
+        threat = Threat(
+            _json_sym(_json_field(t, "name")),
+            _json_num(_json_field(t, "probability")),
+            _json_str(_json_field(t, "description")),
+        )
+        push!(
+            threat_paths,
+            ThreatPath(
+                threat,
+                _read_barriers(_json_field(p, "barriers")),
+                _read_factors(_json_field(p, "escalation_factors")),
+            ),
+        )
     end
 
     consequence_paths = ConsequencePath[]
-    for p in obj["consequence_paths"]
-        consequence = Consequence(Symbol(String(p["consequence"]["name"])), Float64(p["consequence"]["severity"]), String(p["consequence"]["description"]))
-        barriers = Barrier[]
-        for b in p["barriers"]
-            push!(barriers, Barrier(
-                Symbol(String(b["name"])),
-                Float64(b["effectiveness"]),
-                Symbol(String(b["kind"])),
-                String(b["description"]),
-                Float64(b["degradation"]),
-                Symbol(String(b["dependency"])),
-            ))
-        end
-        factors = EscalationFactor[]
-        for f in p["escalation_factors"]
-            push!(factors, EscalationFactor(Symbol(String(f["name"])), Float64(f["multiplier"]), String(f["description"])))
-        end
-        push!(consequence_paths, ConsequencePath(consequence, barriers, factors))
+    for p in _json_arr(_json_field(obj, "consequence_paths"))
+        c = _json_obj(_json_field(p, "consequence"))
+        consequence = Consequence(
+            _json_sym(_json_field(c, "name")),
+            _json_num(_json_field(c, "severity")),
+            _json_str(_json_field(c, "description")),
+        )
+        push!(
+            consequence_paths,
+            ConsequencePath(
+                consequence,
+                _read_barriers(_json_field(p, "barriers")),
+                _read_factors(_json_field(p, "escalation_factors")),
+            ),
+        )
     end
 
     BowtieModel(hazard, top_event, threat_paths, consequence_paths, model)
