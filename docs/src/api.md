@@ -1,5 +1,11 @@
 # API Reference
 
+## Module
+
+```@docs
+BowtieRisk
+```
+
 ## Core Data Structures
 
 ```@docs
