@@ -9,9 +9,9 @@ if [ -z "$f" ] || [ ! -s "$f" ]; then
   echo "::error title=diag::(no log captured: ${f:-unset})"
   exit 0
 fi
-# Last 12 KB of output, in 3 KB pieces. Escape % and newlines per the
+# Last 40 KB of output, in 3 KB pieces. Escape % and newlines per the
 # workflow-command rules so each piece is one annotation.
-tail -c 12000 "$f" | split -b 3000 - /tmp/diag-piece.
+tail -c 40000 "$f" | split -b 3000 - /tmp/diag-piece.
 n=0
 for piece in /tmp/diag-piece.*; do
   esc=$(sed -e 's/%/%25/g' -e 's/\r/%0D/g' "$piece" | awk 'BEGIN{ORS=""} NR>1{print "%0A"} {print}')
