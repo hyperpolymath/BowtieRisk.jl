@@ -115,7 +115,8 @@ htmlcov/
 # Temp
 /tmp/
 *.tmp
-*.bakSONNET-TASKS.md
+*.bak
+SONNET-TASKS.md
 target/
 node_modules/
 _build/
