@@ -18,8 +18,22 @@ using BowtieRisk
             ThreatPath(
                 Threat(:Phishing, 0.15, "Spear phishing email"),
                 [
-                    Barrier(:EmailFilter, 0.7, :preventive, "Email gateway filter", 0.05, :none),
-                    Barrier(:UserTraining, 0.5, :preventive, "Security awareness training", 0.1, :shared_training),
+                    Barrier(
+                        :EmailFilter,
+                        0.7,
+                        :preventive,
+                        "Email gateway filter",
+                        0.05,
+                        :none,
+                    ),
+                    Barrier(
+                        :UserTraining,
+                        0.5,
+                        :preventive,
+                        "Security awareness training",
+                        0.1,
+                        :shared_training,
+                    ),
                 ],
                 [EscalationFactor(:RemoteWork, 0.2, "Reduced physical oversight")],
             ),
@@ -36,7 +50,14 @@ using BowtieRisk
                 Consequence(:DataLoss, 0.9, "Customer PII exfiltrated"),
                 [
                     Barrier(:DLP, 0.6, :mitigative, "Data loss prevention", 0.0, :none),
-                    Barrier(:Encryption, 0.9, :mitigative, "Data at rest encryption", 0.0, :none),
+                    Barrier(
+                        :Encryption,
+                        0.9,
+                        :mitigative,
+                        "Data at rest encryption",
+                        0.0,
+                        :none,
+                    ),
                 ],
                 EscalationFactor[],
             ),
@@ -48,8 +69,13 @@ using BowtieRisk
         ]
 
         # 4. Build model
-        model = BowtieModel(hazard, top_event, threat_paths, consequence_paths,
-                             ProbabilityModel(:independent))
+        model = BowtieModel(
+            hazard,
+            top_event,
+            threat_paths,
+            consequence_paths,
+            ProbabilityModel(:independent),
+        )
 
         # 5. Evaluate deterministically
         summary = evaluate(model)
@@ -64,19 +90,19 @@ using BowtieRisk
 
         # 6. Monte Carlo simulation
         dists = Dict(
-            :EmailFilter   => BarrierDistribution(:beta, (5.0, 2.0, 0.0)),
-            :UserTraining  => BarrierDistribution(:triangular, (0.2, 0.5, 0.8)),
-            :Encryption    => BarrierDistribution(:beta, (8.0, 1.0, 0.0)),
+            :EmailFilter => BarrierDistribution(:beta, (5.0, 2.0, 0.0)),
+            :UserTraining => BarrierDistribution(:triangular, (0.2, 0.5, 0.8)),
+            :Encryption => BarrierDistribution(:beta, (8.0, 1.0, 0.0)),
         )
-        sim = simulate(model; samples=200, barrier_dists=dists)
+        sim = simulate(model; samples = 200, barrier_dists = dists)
         @test sim.top_event_mean >= 0.0
         @test length(sim.samples) == 200
 
         # 7. Sensitivity
-        tornado = sensitivity_tornado(model; delta=0.1)
+        tornado = sensitivity_tornado(model; delta = 0.1)
         @test !isempty(tornado)
         impacts = [abs(t[3] - t[2]) for t in tornado]
-        @test issorted(impacts, rev=true)
+        @test issorted(impacts, rev = true)
 
         # 8. Export round-trip
         dir = mktempdir()
@@ -88,7 +114,7 @@ using BowtieRisk
 
         # 9. Diagram exports
         mermaid = to_mermaid(model)
-        dot     = to_graphviz(model)
+        dot = to_graphviz(model)
         @test occursin("DataExfiltration", mermaid)
         @test occursin("digraph", dot)
     end
@@ -99,7 +125,8 @@ using BowtieRisk
 
         # Unknown probability model
         bad_model = BowtieModel(
-            Hazard(:H, "Hazard"), TopEvent(:T, "Top"),
+            Hazard(:H, "Hazard"),
+            TopEvent(:T, "Top"),
             [ThreatPath(Threat(:X, 0.1, "Threat"), Barrier[], EscalationFactor[])],
             [ConsequencePath(Consequence(:C, 0.5, "Cons"), Barrier[], EscalationFactor[])],
             ProbabilityModel(:bogus_mode),
@@ -108,13 +135,23 @@ using BowtieRisk
 
         # Unknown barrier distribution in simulation
         simple_model = BowtieModel(
-            Hazard(:H, "Hazard"), TopEvent(:T, "Top"),
-            [ThreatPath(Threat(:X, 0.1, "Threat"), [Barrier(:B, 0.5, :preventive, "B", 0.0, :none)], EscalationFactor[])],
+            Hazard(:H, "Hazard"),
+            TopEvent(:T, "Top"),
+            [
+                ThreatPath(
+                    Threat(:X, 0.1, "Threat"),
+                    [Barrier(:B, 0.5, :preventive, "B", 0.0, :none)],
+                    EscalationFactor[],
+                ),
+            ],
             [ConsequencePath(Consequence(:C, 0.5, "Cons"), Barrier[], EscalationFactor[])],
             ProbabilityModel(:independent),
         )
-        @test_throws ErrorException simulate(simple_model; samples=5,
-            barrier_dists=Dict(:B => BarrierDistribution(:no_such_dist, (0.5, 0.5, 0.5))))
+        @test_throws ErrorException simulate(
+            simple_model;
+            samples = 5,
+            barrier_dists = Dict(:B => BarrierDistribution(:no_such_dist, (0.5, 0.5, 0.5))),
+        )
     end
 
     @testset "Round-trip consistency: JSON serialisation" begin
