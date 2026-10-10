@@ -1,7 +1,19 @@
 # SPDX-License-Identifier: MPL-2.0
 # (MPL-2.0 preferred; MPL-2.0 required for Julia ecosystem)
 using Test
+using Aqua
 using BowtieRisk
+using Random
+
+# Deterministic test run: the property and simulation tests draw from rand().
+# A fixed seed makes a failure reproducible and removes run-to-run flakiness.
+Random.seed!(20261010)
+
+# Package-shape gate runs FIRST (rsr-criteria 5.2.5): a package with stale,
+# unbound or ambiguous definitions is rejected before any behaviour test runs.
+@testset "BowtieRisk — Aqua package shape" begin
+    Aqua.test_all(BowtieRisk)
+end
 
 @testset "BowtieRisk" begin
     hazard = Hazard(:Hazard, "Test hazard")
