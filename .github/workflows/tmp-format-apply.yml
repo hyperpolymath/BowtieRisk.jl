@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: MPL-2.0
+# TEMPORARY (#61): apply JuliaFormatter to src/ and test/ on this branch and
+# commit the result through the GitHub API, so GitHub signs it. Removed once
+# the formatted sources are on the branch. No-op when nothing changes.
+name: TEMP format-apply
+
+on:
+  push:
+    branches: [arena/ebd419f3-bowtierisk-jl]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tmp-format-apply-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32 # v3.0.2
+        with:
+          version: "1"
+      - name: Apply JuliaFormatter (DefaultStyle)
+        run: julia .github/scripts/tmp-format-apply.jl
+      - name: Commit formatted files through the API (GitHub-signed)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: bash .github/scripts/tmp-commit-formatted.sh

@@ -265,10 +265,6 @@ function _apply_distributions(model::BowtieModel, dists::Dict{Symbol,BarrierDist
     BowtieModel(model.hazard, model.top_event, threats, cons, model.probability_model)
 end
 
-_check_mode(model::ProbabilityModel) =
-    model.mode in (:independent, :dependent) ? nothing :
-    error("unknown probability model mode: $(model.mode)")
-
 function _combined_barrier_reduction(
     barriers::Vector{Barrier},
     factors::Vector{EscalationFactor},
@@ -319,7 +315,10 @@ end
 Compute residual probabilities, top event probability, and consequence risk.
 """
 function evaluate(model::BowtieModel)
-    _check_mode(model.probability_model)
+    if !(model.probability_model.mode in (:independent, :dependent))
+        error("unknown probability model mode: $(model.probability_model.mode)")
+    end
+
     threat_residuals = Dict{Symbol,Float64}()
     residual_values = Float64[]
 
@@ -960,11 +959,12 @@ function write_model_json(path::AbstractString, model::BowtieModel)
     nothing
 end
 
-# Typed accessors for JSON3 values. JSON3 yields a Union of JSON types, so each
-# value is checked once here; a malformed model file raises ArgumentError rather
+# Typed accessors for materialized JSON values. Concrete dictionaries avoid
+# indexing JSON3's abstract lazy buffer/tape types during static analysis.
+# Each value is checked here so malformed fields raise ArgumentError rather
 # than a MethodError deep inside the constructors.
-_json_obj(x)::JSON3.Object =
-    x isa JSON3.Object ? x :
+_json_obj(x)::Dict{String,Any} =
+    x isa Dict{String,Any} ? x :
     throw(ArgumentError("model JSON: expected an object, got $(typeof(x))"))
 _json_arr(x)::AbstractVector =
     x isa AbstractVector ? x :
@@ -976,9 +976,7 @@ _json_num(x)::Float64 =
     x isa Real ? Float64(x) :
     throw(ArgumentError("model JSON: expected a number, got $(typeof(x))"))
 _json_sym(x)::Symbol = Symbol(_json_str(x))
-_json_field(o, key::String) = _json_req(get(_json_obj(o), Symbol(key), nothing), key)
-_json_req(x, key::String) =
-    x === nothing ? throw(ArgumentError("model JSON: missing or null field \"$key\"")) : x
+_json_field(o, key::String) = _json_obj(o)[key]
 
 function _read_barrier(b)
     Barrier(
@@ -1009,7 +1007,7 @@ end
 Read a bowtie model from JSON produced by write_model_json.
 """
 function read_model_json(path::AbstractString)
-    obj = _json_obj(JSON3.read(read(path, String)))
+    obj = _json_obj(JSON3.read(read(path, String), Any))
     hz = _json_obj(_json_field(obj, "hazard"))
     te = _json_obj(_json_field(obj, "top_event"))
     hazard = Hazard(

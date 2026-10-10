@@ -5,6 +5,7 @@
 
 using Test
 using BowtieRisk
+using JSON3
 
 @testset "E2E Pipeline Tests" begin
 
@@ -133,6 +134,27 @@ using BowtieRisk
         )
         @test_throws ErrorException evaluate(bad_model)
 
+        # Mode validation also applies when there are no paths to evaluate.
+        empty_model = BowtieModel(
+            bad_model.hazard,
+            bad_model.top_event,
+            ThreatPath[],
+            ConsequencePath[],
+            bad_model.probability_model,
+        )
+        @test_throws ErrorException evaluate(empty_model)
+
+        for mode in (:independent, :dependent)
+            valid_model = BowtieModel(
+                bad_model.hazard,
+                bad_model.top_event,
+                bad_model.threat_paths,
+                bad_model.consequence_paths,
+                ProbabilityModel(mode),
+            )
+            @test evaluate(valid_model).top_event_probability ≈ 0.1
+        end
+
         # Unknown barrier distribution in simulation
         simple_model = BowtieModel(
             Hazard(:H, "Hazard"),
@@ -165,12 +187,46 @@ using BowtieRisk
         model2 = read_model_json(path)
         summary2 = evaluate(model2)
 
+        roundtrip_path = joinpath(dir, "roundtrip.json")
+        write_model_json(roundtrip_path, model2)
+        @test JSON3.read(read(roundtrip_path, String)) == JSON3.read(read(path, String))
+
         @test summary2.top_event_probability ≈ summary.top_event_probability
         for (k, v) in summary.threat_residuals
             @test summary2.threat_residuals[k] ≈ v
         end
         for (k, v) in summary.consequence_risks
             @test summary2.consequence_risks[k] ≈ v
+        end
+    end
+
+    @testset "Malformed JSON field types" begin
+        mktempdir() do dir
+            path = joinpath(dir, "model.json")
+            write_model_json(path, template_model(:process_safety))
+            original = read(path, String)
+
+            for (keys, value) in (
+                (("hazard",), nothing),
+                (("hazard", "name"), 42),
+                (("top_event", "description"), []),
+                (("threat_paths",), nothing),
+                (("threat_paths", 1, "threat", "probability"), "0.1"),
+                (("threat_paths", 1, "barriers", 1), false),
+                (("threat_paths", 1, "escalation_factors"), "invalid"),
+            )
+                obj = JSON3.read(original, Dict{String,Any})
+                parent = obj
+                for key in keys[1:(end-1)]
+                    parent = parent[key]
+                end
+                parent[last(keys)] = value
+                write(path, JSON3.write(obj))
+                @test_throws ArgumentError read_model_json(path)
+            end
+
+            write(path, "[]")
+            @test_throws ArgumentError read_model_json(path)
         end
     end
 

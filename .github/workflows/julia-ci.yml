@@ -11,6 +11,8 @@
 # Pin posture: symbolic refs are pinned by commit SHA (comment gives the tag).
 # No `continue-on-error` anywhere: a red job is the gate working.
 #
+# TEMPORARY: the `diag` steps publish failing output as annotations (see
+# .github/scripts/emit-job-diagnostics.sh). Remove with that script.
 name: Julia CI
 
 on:
@@ -42,6 +44,7 @@ jobs:
       - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
       - name: Check formatting (check mode, never writes)
         run: |
+          set +e
           julia -e '
             using Pkg
             Pkg.activate(mktempdir())
@@ -66,7 +69,13 @@ jobs:
                 println("Not formatted (run JuliaFormatter.format_file on these):")
                 foreach(f -> println("  ", f), bad)
                 exit(1)
-            end'
+            end' > fmt.log 2>&1
+          rc=$?
+          cat fmt.log
+          exit $rc
+      - name: diag
+        if: failure()
+        run: bash .github/scripts/emit-job-diagnostics.sh fmt.log
 
   jet:
     name: Static analysis (JET)
@@ -81,6 +90,7 @@ jobs:
       - name: JET analysis (supported API)
         # JET 0.12 removed the path/string entry points; pass the loaded module.
         run: |
+          set +e
           julia -e '
             using Pkg
             Pkg.activate(mktempdir())
@@ -91,11 +101,13 @@ jobs:
             if !hasmethod(JET.test_package, (Module,))
                 error("JET ", pkgversion(JET), " has no test_package(::Module)")
             end
-            # Documented exemption (#61): JSON3 reads values through a generic
-            # getvalue(::Type{Any}), so JET infers a BoundsError inside JSON3 for
-            # every field access. Only reports whose stack passes through JSON3 are
-            # ignored; all other JET reports still fail the job.
-            JET.test_package(BowtieRisk; ignored_modules=(JET.AnyFrameModule(:JSON3),))'
+            JET.test_package(BowtieRisk)' > jet.log 2>&1
+          rc=$?
+          cat jet.log
+          exit $rc
+      - name: diag
+        if: failure()
+        run: bash .github/scripts/emit-job-diagnostics.sh jet.log
 
   test:
     name: Test (Test + Aqua)
@@ -115,7 +127,21 @@ jobs:
       - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
       - name: Install dependencies
         run: |
-          julia --project=. -e 'using Pkg; Pkg.add(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"]); Pkg.instantiate()'
+          set +e
+          julia --project=. -e 'using Pkg; Pkg.add(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"]); Pkg.instantiate()' > install.log 2>&1
+          rc=$?
+          cat install.log
+          exit $rc
+      - name: diag
+        if: failure()
+        run: bash .github/scripts/emit-job-diagnostics.sh install.log
       - name: Pkg.test()
         run: |
-          julia --project=. -e 'using Pkg; Pkg.test()'
+          set +e
+          julia --project=. -e 'using Pkg; Pkg.test()' > test.log 2>&1
+          rc=$?
+          cat test.log
+          exit $rc
+      - name: diag
+        if: failure()
+        run: bash .github/scripts/emit-job-diagnostics.sh test.log
