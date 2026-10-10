@@ -1,0 +1,114 @@
+# SPDX-License-Identifier: MPL-2.0
+# BowtieRisk.jl — Julia CI (julia-library archetype, rsr-criteria 5.2.4 / 5.2.5)
+#
+# Shape follows rsr-template-repo archetypes/julia-library/overlay/.github/workflows/julia-ci.yml.in.
+# Deviations, each deliberate:
+#   - AcceleratorGate.jl is not in the General registry. Every job develops it
+#     from its pinned git revision before resolving the project.
+#   - The fmt job creates a throwaway environment for JuliaFormatter instead of
+#     `Pkg.add` into the project, so CI never writes to Project.toml.
+#
+# Pin posture: symbolic refs are pinned by commit SHA (comment gives the tag).
+# No `continue-on-error` anywhere: a red job is the gate working.
+name: Julia CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ACCELERATORGATE_URL: https://github.com/hyperpolymath/AcceleratorGate.jl.git
+  ACCELERATORGATE_REV: 680205c9c167d1d9ab0bb5a6034852f3d8e06149
+
+jobs:
+  fmt:
+    name: Format (JuliaFormatter)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32 # v3.0.2
+        with:
+          version: "1"
+      - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
+      - name: Check formatting (check mode, never writes)
+        run: |
+          julia -e '
+            using Pkg
+            Pkg.activate(mktempdir())
+            Pkg.add("JuliaFormatter")
+            using JuliaFormatter
+            files = String[]
+            for dir in ("src", "test")
+                for (root, _, names) in walkdir(dir)
+                    for n in names
+                        endswith(n, ".jl") && push!(files, joinpath(root, n))
+                    end
+                end
+            end
+            bad = String[]
+            for f in sort(files)
+                text = read(f, String)
+                if text != JuliaFormatter.format_string(text)
+                    push!(bad, f)
+                end
+            end
+            if !isempty(bad)
+                println(stderr, "Not formatted (run JuliaFormatter.format_file on these):")
+                foreach(f -> println(stderr, "  ", f), bad)
+                exit(1)
+            end'
+
+  jet:
+    name: Static analysis (JET)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32 # v3.0.2
+        with:
+          version: "1"
+      - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
+      - name: JET analysis (supported API)
+        # JET 0.12 removed the path/string entry points; pass the loaded module.
+        run: |
+          julia -e '
+            using Pkg
+            Pkg.activate(mktempdir())
+            Pkg.develop(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"])
+            Pkg.develop(path=".")
+            Pkg.add(Pkg.PackageSpec(name="JET", version="0.12"))
+            using BowtieRisk, JET
+            if !hasmethod(JET.test_package, (Module,))
+                error("JET ", pkgversion(JET), " has no test_package(::Module)")
+            end
+            JET.test_package(BowtieRisk)'
+
+  test:
+    name: Test (Test + Aqua)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # The [compat] floor IS tested (rsr-criteria 5.2.4): an untested
+        # floor is an unproven floor. "1" is the current release.
+        julia: ["1.10", "1"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32 # v3.0.2
+        with:
+          version: ${{ matrix.julia }}
+      - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
+      - name: Install dependencies
+        run: julia --project=. -e 'using Pkg; Pkg.develop(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"]); Pkg.instantiate()'
+      - name: Pkg.test()
+        run: julia --project=. -e 'using Pkg; Pkg.test()'
