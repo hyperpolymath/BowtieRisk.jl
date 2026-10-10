@@ -12,7 +12,7 @@
 # No `continue-on-error` anywhere: a red job is the gate working.
 #
 # TEMPORARY: the `diag` steps publish failing output as annotations (see
-# .github/scripts/emit-job-diagnostics.py). Remove with that script.
+# .github/scripts/emit-job-diagnostics.sh). Remove with that script.
 name: Julia CI
 
 on:
@@ -75,7 +75,7 @@ jobs:
           exit $rc
       - name: diag
         if: failure()
-        run: python3 .github/scripts/emit-job-diagnostics.py fmt.log
+        run: bash .github/scripts/emit-job-diagnostics.sh fmt.log
 
   jet:
     name: Static analysis (JET)
@@ -107,7 +107,7 @@ jobs:
           exit $rc
       - name: diag
         if: failure()
-        run: python3 .github/scripts/emit-job-diagnostics.py jet.log
+        run: bash .github/scripts/emit-job-diagnostics.sh jet.log
 
   test:
     name: Test (Test + Aqua)
@@ -134,7 +134,7 @@ jobs:
           exit $rc
       - name: diag
         if: failure()
-        run: python3 .github/scripts/emit-job-diagnostics.py install.log
+        run: bash .github/scripts/emit-job-diagnostics.sh install.log
       - name: Pkg.test()
         run: |
           set +e
@@ -144,4 +144,4 @@ jobs:
           exit $rc
       - name: diag
         if: failure()
-        run: python3 .github/scripts/emit-job-diagnostics.py test.log
+        run: bash .github/scripts/emit-job-diagnostics.sh test.log
