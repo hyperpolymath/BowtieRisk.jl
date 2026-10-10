@@ -101,7 +101,11 @@ jobs:
             if !hasmethod(JET.test_package, (Module,))
                 error("JET ", pkgversion(JET), " has no test_package(::Module)")
             end
-            JET.test_package(BowtieRisk)' > jet.log 2>&1
+            # Documented exemption (#61): JSON3 reads values through a generic
+            # getvalue(::Type{Any}), so JET infers a BoundsError inside JSON3 for
+            # every field access. Only reports whose stack passes through JSON3 are
+            # ignored; all other JET reports still fail the job.
+            JET.test_package(BowtieRisk; ignored_modules=(JET.AnyFrameModule(:JSON3),))' > jet.log 2>&1
           rc=$?
           cat jet.log
           exit $rc
