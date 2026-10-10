@@ -10,6 +10,9 @@
 #
 # Pin posture: symbolic refs are pinned by commit SHA (comment gives the tag).
 # No `continue-on-error` anywhere: a red job is the gate working.
+#
+# TEMPORARY: the `diag` steps publish failing output as annotations (see
+# .github/scripts/emit-job-diagnostics.py). Remove with that script.
 name: Julia CI
 
 on:
@@ -35,14 +38,13 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
       - uses: julia-actions/setup-julia@fa02766e078afaaf09b14210362cee14137e6a32 # v3.0.2
         with:
           version: "1"
       - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
       - name: Check formatting (check mode, never writes)
         run: |
+          set +e
           julia -e '
             using Pkg
             Pkg.activate(mktempdir())
@@ -64,10 +66,16 @@ jobs:
                 end
             end
             if !isempty(bad)
-                println(stderr, "Not formatted (run JuliaFormatter.format_file on these):")
-                foreach(f -> println(stderr, "  ", f), bad)
+                println("Not formatted (run JuliaFormatter.format_file on these):")
+                foreach(f -> println("  ", f), bad)
                 exit(1)
-            end'
+            end' > fmt.log 2>&1
+          rc=$?
+          cat fmt.log
+          exit $rc
+      - name: diag
+        if: failure()
+        run: python3 .github/scripts/emit-job-diagnostics.py fmt.log
 
   jet:
     name: Static analysis (JET)
@@ -82,6 +90,7 @@ jobs:
       - name: JET analysis (supported API)
         # JET 0.12 removed the path/string entry points; pass the loaded module.
         run: |
+          set +e
           julia -e '
             using Pkg
             Pkg.activate(mktempdir())
@@ -92,7 +101,13 @@ jobs:
             if !hasmethod(JET.test_package, (Module,))
                 error("JET ", pkgversion(JET), " has no test_package(::Module)")
             end
-            JET.test_package(BowtieRisk)'
+            JET.test_package(BowtieRisk)' > jet.log 2>&1
+          rc=$?
+          cat jet.log
+          exit $rc
+      - name: diag
+        if: failure()
+        run: python3 .github/scripts/emit-job-diagnostics.py jet.log
 
   test:
     name: Test (Test + Aqua)
@@ -111,6 +126,14 @@ jobs:
           version: ${{ matrix.julia }}
       - uses: julia-actions/cache@9353db09a0f2bbbdec6f41791918c75d37391b36 # v3.5.0
       - name: Install dependencies
-        run: julia --project=. -e 'using Pkg; Pkg.develop(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"]); Pkg.instantiate()'
+        run: |
+          set +e
+          julia --project=. -e 'using Pkg; Pkg.develop(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"]); Pkg.instantiate()' > install.log 2>&1
+          rc=$?
+          cat install.log
+          exit $rc
+      - name: diag
+        if: failure()
+        run: python3 .github/scripts/emit-job-diagnostics.py install.log
       - name: Pkg.test()
         run: julia --project=. -e 'using Pkg; Pkg.test()'
