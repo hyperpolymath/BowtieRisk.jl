@@ -750,55 +750,78 @@ function write_model_json(path::AbstractString, model::BowtieModel)
     nothing
 end
 
+# Typed accessors for JSON3 values. JSON3 yields a Union of JSON types, so each
+# value is checked once here; a malformed model file raises ArgumentError rather
+# than a MethodError deep inside the constructors.
+_json_obj(x)::JSON3.Object = x isa JSON3.Object ? x : throw(ArgumentError("model JSON: expected an object, got $(typeof(x))"))
+_json_arr(x)::AbstractVector = x isa AbstractVector ? x : throw(ArgumentError("model JSON: expected an array, got $(typeof(x))"))
+_json_str(x)::String = x isa AbstractString ? String(x) : throw(ArgumentError("model JSON: expected a string, got $(typeof(x))"))
+_json_num(x)::Float64 = x isa Real ? Float64(x) : throw(ArgumentError("model JSON: expected a number, got $(typeof(x))"))
+_json_sym(x)::Symbol = Symbol(_json_str(x))
+_json_field(o, key::String) = _json_obj(o)[Symbol(key)]
+
+function _read_barrier(b)
+    Barrier(
+        _json_sym(_json_field(b, "name")),
+        _json_num(_json_field(b, "effectiveness")),
+        _json_sym(_json_field(b, "kind")),
+        _json_str(_json_field(b, "description")),
+        _json_num(_json_field(b, "degradation")),
+        _json_sym(_json_field(b, "dependency")),
+    )
+end
+
+function _read_factors(list)
+    [EscalationFactor(
+        _json_sym(_json_field(f, "name")),
+        _json_num(_json_field(f, "multiplier")),
+        _json_str(_json_field(f, "description")),
+    ) for f in _json_arr(list)]
+end
+
+function _read_barriers(list)
+    Barrier[_read_barrier(b) for b in _json_arr(list)]
+end
+
 """
 Read a bowtie model from JSON produced by write_model_json.
 """
 function read_model_json(path::AbstractString)
-    obj = JSON3.read(read(path, String))
-    hazard = Hazard(Symbol(String(obj["hazard"]["name"])), String(obj["hazard"]["description"]))
-    top_event = TopEvent(Symbol(String(obj["top_event"]["name"])), String(obj["top_event"]["description"]))
-    model = ProbabilityModel(Symbol(String(obj["probability_model"]["mode"])))
+    obj = _json_obj(JSON3.read(read(path, String)))
+    hz = _json_obj(_json_field(obj, "hazard"))
+    te = _json_obj(_json_field(obj, "top_event"))
+    hazard = Hazard(_json_sym(_json_field(hz, "name")), _json_str(_json_field(hz, "description")))
+    top_event = TopEvent(_json_sym(_json_field(te, "name")), _json_str(_json_field(te, "description")))
+    model = ProbabilityModel(_json_sym(_json_field(_json_obj(_json_field(obj, "probability_model")), "mode")))
 
     threat_paths = ThreatPath[]
-    for p in obj["threat_paths"]
-        threat = Threat(Symbol(String(p["threat"]["name"])), Float64(p["threat"]["probability"]), String(p["threat"]["description"]))
-        barriers = Barrier[]
-        for b in p["barriers"]
-            push!(barriers, Barrier(
-                Symbol(String(b["name"])),
-                Float64(b["effectiveness"]),
-                Symbol(String(b["kind"])),
-                String(b["description"]),
-                Float64(b["degradation"]),
-                Symbol(String(b["dependency"])),
-            ))
-        end
-        factors = EscalationFactor[]
-        for f in p["escalation_factors"]
-            push!(factors, EscalationFactor(Symbol(String(f["name"])), Float64(f["multiplier"]), String(f["description"])))
-        end
-        push!(threat_paths, ThreatPath(threat, barriers, factors))
+    for p in _json_arr(_json_field(obj, "threat_paths"))
+        t = _json_obj(_json_field(p, "threat"))
+        threat = Threat(
+            _json_sym(_json_field(t, "name")),
+            _json_num(_json_field(t, "probability")),
+            _json_str(_json_field(t, "description")),
+        )
+        push!(threat_paths, ThreatPath(
+            threat,
+            _read_barriers(_json_field(p, "barriers")),
+            _read_factors(_json_field(p, "escalation_factors")),
+        ))
     end
 
     consequence_paths = ConsequencePath[]
-    for p in obj["consequence_paths"]
-        consequence = Consequence(Symbol(String(p["consequence"]["name"])), Float64(p["consequence"]["severity"]), String(p["consequence"]["description"]))
-        barriers = Barrier[]
-        for b in p["barriers"]
-            push!(barriers, Barrier(
-                Symbol(String(b["name"])),
-                Float64(b["effectiveness"]),
-                Symbol(String(b["kind"])),
-                String(b["description"]),
-                Float64(b["degradation"]),
-                Symbol(String(b["dependency"])),
-            ))
-        end
-        factors = EscalationFactor[]
-        for f in p["escalation_factors"]
-            push!(factors, EscalationFactor(Symbol(String(f["name"])), Float64(f["multiplier"]), String(f["description"])))
-        end
-        push!(consequence_paths, ConsequencePath(consequence, barriers, factors))
+    for p in _json_arr(_json_field(obj, "consequence_paths"))
+        c = _json_obj(_json_field(p, "consequence"))
+        consequence = Consequence(
+            _json_sym(_json_field(c, "name")),
+            _json_num(_json_field(c, "severity")),
+            _json_str(_json_field(c, "description")),
+        )
+        push!(consequence_paths, ConsequencePath(
+            consequence,
+            _read_barriers(_json_field(p, "barriers")),
+            _read_factors(_json_field(p, "escalation_factors")),
+        ))
     end
 
     BowtieModel(hazard, top_event, threat_paths, consequence_paths, model)

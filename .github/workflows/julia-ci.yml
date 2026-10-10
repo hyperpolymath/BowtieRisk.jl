@@ -136,4 +136,12 @@ jobs:
         if: failure()
         run: python3 .github/scripts/emit-job-diagnostics.py install.log
       - name: Pkg.test()
-        run: julia --project=. -e 'using Pkg; Pkg.test()'
+        run: |
+          set +e
+          julia --project=. -e 'using Pkg; Pkg.test()' > test.log 2>&1
+          rc=$?
+          cat test.log
+          exit $rc
+      - name: diag
+        if: failure()
+        run: python3 .github/scripts/emit-job-diagnostics.py test.log
