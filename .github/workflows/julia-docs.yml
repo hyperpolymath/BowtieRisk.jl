@@ -13,8 +13,6 @@ on:
   push:
     branches: [main, master]
   workflow_dispatch:
-  # TEMPORARY (#61): run the docs build on this PR to read its output. Remove with the diag step.
-  pull_request:
 
 permissions:
   contents: read
@@ -52,15 +50,6 @@ jobs:
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
       - name: Build and deploy (Documenter deploydocs)
-        # TEMPORARY (#61): capture the build output for annotations (remove with the diag step).
-        run: |
-          set +e
-          julia --project=docs docs/make.jl > docs.log 2>&1
-          rc=$?
-          cat docs.log
-          exit $rc
+        run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: diag
-        if: failure()
-        run: bash .github/scripts/emit-job-diagnostics.sh docs.log
