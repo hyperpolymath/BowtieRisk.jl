@@ -28,7 +28,6 @@ using JSON3
 using Distributions
 using LinearAlgebra
 
-include("backends/abstract.jl")
 
 export Hazard, Threat, TopEvent, Consequence, Barrier, EscalationFactor
 export ProbabilityModel, ThreatPath, ConsequencePath, BowtieModel

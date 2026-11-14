@@ -67,8 +67,6 @@ reviewers immediately runnable examples.
   (`src/abi/`, `ffi/zig/`) exist as structural stubs but contain no implemented
   Idris2 proofs or Zig bindings yet.
 * No uncertainty propagation on input probabilities (only on barrier distributions).
-* The CUDA/Metal/AMDGPU weak-deps (`ext/`) are scaffolded in `Project.toml` but
-  the extension files are minimal boilerplate; GPU acceleration is not operative.
 * `load_simple_csv` is a thin utility; it does not handle quoted fields or
   multi-line values.
 
@@ -108,9 +106,6 @@ reviewers immediately runnable examples.
   `ConsequencePath`, `BowtieModel`), evaluation, simulation, diagramming,
   reporting, JSON I/O, templates, and schema generation.
 
-| `src/backends/abstract.jl`
-| AcceleratorGate coprocessor-dispatch hook (GPU backend stub).
-
 | `src/abi/`
 | Idris2 ABI definitions directory — currently scaffolded, not yet populated.
 
@@ -133,9 +128,6 @@ reviewers immediately runnable examples.
 
 | `ffi/`
 | Zig FFI directory — structural stub, no operative bindings yet.
-
-| `ext/`
-| GPU extension entry points for CUDA, Metal, AMDGPU weak dependencies.
 
 | `Project.toml`
 | Package metadata: name `BowtieRisk`, v1.0.0, MPL-2.0 (fallback from MPL-2.0

@@ -3,8 +3,6 @@
 #
 # Shape follows rsr-template-repo archetypes/julia-library/overlay/.github/workflows/julia-ci.yml.in.
 # Deviations, each deliberate:
-#   - AcceleratorGate.jl is not in the General registry. Every job develops it
-#     from its pinned git revision before resolving the project.
 #   - The fmt job creates a throwaway environment for JuliaFormatter instead of
 #     `Pkg.add` into the project, so CI never writes to Project.toml.
 #
@@ -27,9 +25,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  ACCELERATORGATE_URL: https://github.com/hyperpolymath/AcceleratorGate.jl.git
-  ACCELERATORGATE_REV: 680205c9c167d1d9ab0bb5a6034852f3d8e06149
 
 jobs:
   fmt:
@@ -94,7 +89,6 @@ jobs:
           julia -e '
             using Pkg
             Pkg.activate(mktempdir())
-            Pkg.add(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"])
             Pkg.develop(path=".")
             Pkg.add(Pkg.PackageSpec(name="JET", version="0.12"))
             using BowtieRisk, JET
@@ -128,7 +122,7 @@ jobs:
       - name: Install dependencies
         run: |
           set +e
-          julia --project=. -e 'using Pkg; Pkg.add(url=ENV["ACCELERATORGATE_URL"], rev=ENV["ACCELERATORGATE_REV"]); Pkg.instantiate()' > install.log 2>&1
+          julia --project=. -e 'using Pkg; Pkg.instantiate()' > install.log 2>&1
           rc=$?
           cat install.log
           exit $rc

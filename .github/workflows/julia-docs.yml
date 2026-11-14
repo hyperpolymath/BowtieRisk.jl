@@ -3,10 +3,6 @@
 #
 # Builds the Documenter site from docs/ and deploys it to gh-pages with
 # GITHUB_TOKEN (deploydocs is called from docs/make.jl).
-#
-# Deviation from the template: AcceleratorGate.jl is developed from its pinned
-# git revision before the package is developed, because it is not in the
-# General registry and resolution would otherwise fail.
 name: Docs
 
 on:
@@ -46,7 +42,6 @@ jobs:
       - name: Instantiate the docs environment
         run: |
           julia --project=docs -e 'using Pkg
-            Pkg.add(url="https://github.com/hyperpolymath/AcceleratorGate.jl.git", rev="680205c9c167d1d9ab0bb5a6034852f3d8e06149")
             Pkg.develop(PackageSpec(path=pwd()))
             Pkg.instantiate()'
       - name: Build and deploy (Documenter deploydocs)
